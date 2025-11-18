@@ -1,0 +1,70 @@
+{
+    "folders": [
+        {
+            "name": "🏠 프로젝트 루트",
+            "path": "."
+        },
+        {
+            "name": "🌐 프론트엔드",
+            "path": "./src"
+        },
+        {
+            "name": "🔧 백엔드",
+            "path": "./backend"
+        }
+    ],
+    "settings": {
+        "terminal.integrated.defaultProfile.windows": "Command Prompt",
+        "task.autoDetect": "on",
+        "npm.enableRunFromFolder": true,
+        "files.autoSave": "afterDelay",
+        "workbench.startupEditor": "none"
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "🚀 자동 시작",
+                "type": "shell",
+                "command": "node",
+                "args": [
+                    "start-platform.js"
+                ],
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                },
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "new"
+                },
+                "isBackground": true,
+                "runOptions": {
+                    "runOn": "folderOpen"
+                }
+            }
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "🚀 플랫폼 시작",
+                "type": "node",
+                "request": "launch",
+                "program": "${workspaceFolder}/start-platform.js",
+                "console": "integratedTerminal"
+            }
+        ]
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-vscode.vscode-typescript-next",
+            "bradlc.vscode-tailwindcss",
+            "esbenp.prettier-vscode",
+            "ms-vscode.vscode-json"
+        ]
+    }
+}

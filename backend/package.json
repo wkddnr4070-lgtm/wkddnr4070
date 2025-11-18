@@ -1,0 +1,59 @@
+{
+  "name": "gas-emergency-training-backend",
+  "version": "1.0.0",
+  "description": "도시가스 비상대응 모의훈련 플랫폼 백엔드 API",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "build": "echo 'No build step required for Node.js'",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "echo 'Linting not configured yet'",
+    "migrate": "node scripts/migrate-sqlite.js",
+    "migrate-postgres": "node scripts/migrate.js",
+    "seed": "node scripts/seed-data.js",
+    "seed-data": "node scripts/seed-data.js",
+    "backup": "node scripts/backup.js",
+    "health": "node scripts/health-check.js",
+    "setup": "npm run migrate && npm run seed",
+    "setup-postgres": "npm run migrate-postgres && npm run seed",
+    "reset": "rm -f ../data/*.db && npm run setup"
+  },
+  "keywords": [
+    "gas",
+    "emergency",
+    "training",
+    "api",
+    "private"
+  ],
+  "author": "Gas Training Platform Team",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.4.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "pg": "^8.16.3",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "winston": "^3.17.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "private"
+  },
+  "private": true
+}
