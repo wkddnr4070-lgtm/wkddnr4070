@@ -10,11 +10,6 @@
       "VITE_AI_FEEDBACK_ENABLED": "true"
     }
   },
-  "env": {
-    "OPENAI_KEY": "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",
-    "AI_FEEDBACK_ENABLED": "true",
-    "AI_MIN_SCORE": "100"
-  },
   "headers": [
     {
       "source": "/api/(.*)",
