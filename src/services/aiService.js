@@ -7,7 +7,7 @@ class AIService {
     
     // 개발 환경: 직접 OpenAI 호출, 배포 환경: Vercel Functions 사용
     if (this.isDevelopment) {
-      this.apiKey = import.meta.env.VITE_OPENAI_API_KEY_DEV // 개발용 키 (임시)
+      this.apiKey = import.meta.env.VITE_OPENAI_KEY_DEV // 개발용 키 (임시)
       this.baseURL = 'https://api.openai.com/v1/chat/completions'
       this.useVercelFunctions = false
     } else {
