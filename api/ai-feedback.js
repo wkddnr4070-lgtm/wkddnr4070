@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     console.log('🤖 Vercel Function - AI 피드백 생성 시작')
     
     // 환경변수에서 OpenAI API 키 가져오기 (서버에서만 접근 가능)
-    const openaiApiKey = process.env.OPENAI_API_KEY
+    const openaiApiKey = process.env.OPENAI_KEY
     const aiEnabled = process.env.AI_FEEDBACK_ENABLED === 'true'
     const maxScoreForAI = parseInt(process.env.AI_MIN_SCORE || '100')
 
