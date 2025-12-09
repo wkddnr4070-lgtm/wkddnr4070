@@ -114,7 +114,7 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/', name: '대시보드', icon: Home },
-    { path: '/organization', name: '조직 관리', icon: Users },
+    // { path: '/organization', name: '조직 관리', icon: Users }, // 11/27 이전 상태로 복구를 위해 제거
     { path: '/team', name: '팀 관리', icon: UserCheck },
     { path: '/admin/training', name: '훈련 관리', icon: FileText },
     { path: '/evaluation', name: '평가 리포트', icon: BarChart3 },
