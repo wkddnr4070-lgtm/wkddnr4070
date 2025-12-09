@@ -7,20 +7,20 @@ import apiClient from '../utils/apiClient'
 const LoginPage = () => {
   const navigate = useNavigate()
   const { login, companyOrganizations } = useAppContext()
-  
+
   const [formData, setFormData] = useState({
     company: '',
     department: '',
     name: '',
     contact: ''
   })
-  
+
   const [expandedDepartments, setExpandedDepartments] = useState({})
   const [showEmployeeList, setShowEmployeeList] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  
+
   // 회사 목록
   const companies = [
     'SK E&S',
@@ -33,7 +33,7 @@ const LoginPage = () => {
     '전남도시가스',
     '강원도시가스'
   ]
-  
+
   // 외부 클릭 시 직원 목록 닫기
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -41,25 +41,25 @@ const LoginPage = () => {
         setShowEmployeeList(false)
       }
     }
-    
+
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showEmployeeList])
-  
+
   // 선택된 회사의 부서 목록 생성 (대표이사 → 실 → 조직 구조)
   const getDepartments = useMemo(() => {
     try {
       if (!formData.company || !companyOrganizations || !companyOrganizations[formData.company]) {
         return []
       }
-      
+
       const companyData = companyOrganizations[formData.company]
       if (!companyData || typeof companyData !== 'object') {
         return []
       }
-      
+
       const departments = []
-      
+
       Object.keys(companyData).forEach(level1 => {
         // 1단계 (예: 대표이사)
         departments.push({
@@ -67,12 +67,12 @@ const LoginPage = () => {
           type: 'level1',
           hasSubTeams: true
         })
-        
+
         // 1단계가 확장되어 있으면 하위 레벨 추가
         if (expandedDepartments[level1] && companyData[level1]) {
           Object.keys(companyData[level1]).forEach(level2 => {
             const level2Data = companyData[level1][level2]
-            
+
             // level2가 배열이면 바로 선택 가능한 팀
             if (Array.isArray(level2Data)) {
               departments.push({
@@ -89,7 +89,7 @@ const LoginPage = () => {
                 parent: level1,
                 hasSubTeams: true
               })
-              
+
               // level2가 확장되어 있으면 하위 팀들 추가
               const level2Key = `${level1}>${level2}`
               if (expandedDepartments[level2Key] && level2Data) {
@@ -106,26 +106,26 @@ const LoginPage = () => {
           })
         }
       })
-      
+
       return departments
     } catch (error) {
       console.error('getDepartments error:', error)
       return []
     }
   }, [formData.company, companyOrganizations, expandedDepartments])
-  
+
   // 선택된 부서의 직원 목록 (3단계 구조: 대표이사 → 실 → 조직)
   const getEmployees = useMemo(() => {
     try {
       if (!formData.company || !formData.department || !companyOrganizations || !companyOrganizations[formData.company]) {
         return []
       }
-      
+
       const companyData = companyOrganizations[formData.company]
       if (!companyData || typeof companyData !== 'object') {
         return []
       }
-      
+
       // 3단계 구조에서 해당 팀 찾기
       for (const level1 in companyData) {
         const level1Data = companyData[level1]
@@ -156,24 +156,24 @@ const LoginPage = () => {
       return []
     }
   }, [formData.company, formData.department, companyOrganizations])
-  
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (error) setError('')
-    
+
     if (field === 'company') {
       setFormData(prev => ({ ...prev, department: '', name: '' }))
       setExpandedDepartments({})
     }
   }
-  
+
   const toggleDepartment = useCallback((departmentName) => {
     setExpandedDepartments(prev => ({
       ...prev,
       [departmentName]: !prev[departmentName]
     }))
   }, [])
-  
+
   const handleDepartmentSelect = useCallback((department) => {
     if (department.hasSubTeams) {
       if (department.type === 'level2') {
@@ -186,39 +186,39 @@ const LoginPage = () => {
       setShowEmployeeList(false)
     }
   }, [toggleDepartment])
-  
+
   const handleEmployeeSelect = useCallback((employee) => {
     const name = employee.split(' (')[0]
     setFormData(prev => ({ ...prev, name }))
     setShowEmployeeList(false)
   }, [])
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!formData.company) {
       setError('회사를 선택해주세요.')
       return
     }
-    
+
     if (!formData.department) {
       setError('부서/팀을 선택해주세요.')
       return
     }
-    
+
     if (!formData.name.trim()) {
       setError('이름을 입력해주세요.')
       return
     }
-    
+
     if (!formData.contact.trim()) {
       setError('전화번호를 입력해주세요.')
       return
     }
-    
+
     setIsLoading(true)
     setError('')
-    
+
     try {
       // 로그인 처리 (이름과 전화번호로 인증)
       const userData = {
@@ -229,18 +229,18 @@ const LoginPage = () => {
         contact: formData.contact,
         position: '사원' // 기본값
       }
-      
+
       const token = 'login-token-' + Date.now()
-      
+
       // App.jsx의 login 함수 사용
       login(userData, token)
-      
+
       setSuccess('로그인 성공! 대시보드로 이동합니다...')
-      
+
       setTimeout(() => {
         navigate('/', { replace: true })
       }, 1500)
-      
+
       console.log('✅ 로그인 성공:', userData)
     } catch (error) {
       console.error('❌ 로그인 실패:', error)
@@ -249,7 +249,7 @@ const LoginPage = () => {
       setIsLoading(false)
     }
   }
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center p-4 relative">
       {/* 좌측 상단 로고 */}
@@ -270,7 +270,7 @@ const LoginPage = () => {
           <span className="text-lg font-bold text-white">SK 이노베이션 E&S</span>
         </div>
       </div>
-      
+
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-8">
         {/* 헤더 */}
         <div className="text-center mb-8">
@@ -284,7 +284,7 @@ const LoginPage = () => {
             도시가스 비상대응 모의훈련 시스템
           </p>
         </div>
-        
+
         {/* 에러/성공 메시지 */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-700 dark:text-red-400">
@@ -292,14 +292,14 @@ const LoginPage = () => {
             <span className="text-sm">{error}</span>
           </div>
         )}
-        
+
         {success && (
           <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2 text-green-700 dark:text-green-400">
             <CheckCircle className="h-4 w-4 flex-shrink-0" />
             <span className="text-sm">{success}</span>
           </div>
         )}
-        
+
         {/* 로그인 폼 */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 회사 선택 */}
@@ -320,7 +320,7 @@ const LoginPage = () => {
               ))}
             </select>
           </div>
-          
+
           {/* 부서/팀 선택 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -331,32 +331,30 @@ const LoginPage = () => {
                 getDepartments.length > 0 ? (
                   <div className="p-2">
                     {getDepartments.map((department, index) => {
-                      const indentLevel = 
+                      const indentLevel =
                         department.type === 'level1' ? 0 :
-                        department.type === 'level2' ? 1 :
-                        department.type === 'team' && department.parent.includes('>') ? 2 :
-                        1
-                      
-                      const marginLeft = indentLevel === 0 ? '' : 
-                                        indentLevel === 1 ? 'ml-4' : 
-                                        'ml-8'
-                      
-                      const isExpanded = department.type === 'level2' 
+                          department.type === 'level2' ? 1 :
+                            department.type === 'team' && department.parent.includes('>') ? 2 :
+                              1
+
+                      const marginLeft = indentLevel === 0 ? '' :
+                        indentLevel === 1 ? 'ml-4' :
+                          'ml-8'
+
+                      const isExpanded = department.type === 'level2'
                         ? expandedDepartments[`${department.parent}>${department.name}`]
                         : expandedDepartments[department.name]
-                      
+
                       return (
                         <div
                           key={`${department.name}-${index}`}
-                          className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${marginLeft} ${
-                            department.hasSubTeams
+                          className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${marginLeft} ${department.hasSubTeams
                               ? 'hover:bg-gray-50 dark:hover:bg-gray-600'
-                              : `hover:bg-primary-50 dark:hover:bg-primary-900/20 ${
-                                  formData.department === department.name
-                                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
-                                    : ''
-                                }`
-                          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              : `hover:bg-primary-50 dark:hover:bg-primary-900/20 ${formData.department === department.name
+                                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                                : ''
+                              }`
+                            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                           onClick={() => !isLoading && handleDepartmentSelect(department)}
                         >
                           {department.hasSubTeams ? (
@@ -394,7 +392,7 @@ const LoginPage = () => {
               )}
             </div>
           </div>
-          
+
           {/* 이름 입력 */}
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -412,13 +410,12 @@ const LoginPage = () => {
                     setShowEmployeeList(true)
                   }
                 }}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors ${
-                  error && !formData.name ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
-                }`}
+                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors ${error && !formData.name ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 placeholder={formData.department ? "이름을 입력하거나 목록에서 선택하세요" : "먼저 부서/팀을 선택해주세요"}
                 disabled={!formData.department || isLoading}
               />
-              
+
               {/* 직원 목록 드롭다운 */}
               {showEmployeeList && formData.department && getEmployees.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
@@ -449,7 +446,7 @@ const LoginPage = () => {
               </p>
             )}
           </div>
-          
+
           {/* 전화번호 입력 */}
           <div>
             <label htmlFor="contact" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -462,15 +459,14 @@ const LoginPage = () => {
                 id="contact"
                 value={formData.contact}
                 onChange={(e) => handleInputChange('contact', e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors ${
-                  error && !formData.contact ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
-                }`}
+                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors ${error && !formData.contact ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 placeholder="010-0000-0000"
                 disabled={isLoading}
               />
             </div>
           </div>
-          
+
           {/* 로그인 버튼 */}
           <button
             type="submit"
@@ -490,7 +486,7 @@ const LoginPage = () => {
             )}
           </button>
         </form>
-        
+
         {/* 푸터 */}
         <div className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
           <p>© 2024 SHE Safety Hub. All rights reserved.</p>
