@@ -10,7 +10,7 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: 'all',
     cors: true,
-    open: true, // 서버 시작 시 자동으로 브라우저 열기
+    open: true
   },
   define: {
     global: 'globalThis',

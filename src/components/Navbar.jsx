@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, Users, ClipboardCheck, BarChart3, User, LogOut, ChevronDown, FileText, UserCheck } from 'lucide-react'
 import { useAppContext } from '../App'
+import DarkModeToggle from './DarkModeToggle'
 
 const Navbar = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { userProfile, resetProfile } = useAppContext()
+  const { currentUser, logout, isAuthenticated } = useAppContext()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [pendingPath, setPendingPath] = useState(null)
@@ -114,25 +115,26 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/', name: '대시보드', icon: Home },
-    { path: '/roles', name: '역할 관리', icon: Users },
-    { path: '/team-management', name: '팀 관리', icon: UserCheck },
-    { path: '/training-management', name: '훈련 관리', icon: FileText },
+    { path: '/organization', name: '조직 관리', icon: Users },
+    { path: '/team', name: '팀 관리', icon: UserCheck },
+    { path: '/admin/training', name: '훈련 관리', icon: FileText },
     { path: '/evaluation', name: '평가 리포트', icon: BarChart3 },
   ]
 
   const handleLogout = () => {
     if (confirm('로그아웃 하시겠습니까?')) {
-      resetProfile()
+      logout()
+      navigate('/login')
     }
   }
 
   return (
-    <nav className="bg-white shadow-lg border-b border-gray-200">
+    <nav className="bg-white dark:bg-gray-900 shadow-lg border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <ClipboardCheck className="h-8 w-8 text-primary-600 mr-3" />
-            <h1 className="text-xl font-bold text-gray-900">도시가스 비상대응 모의훈련 플랫폼</h1>
+            <ClipboardCheck className="h-8 w-8 text-primary-600 dark:text-primary-400 mr-3" />
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">도시가스 비상대응 모의훈련 플랫폼</h1>
           </div>
 
           <div className="flex items-center space-x-8">
@@ -146,8 +148,8 @@ const Navbar = () => {
                   key={item.path}
                   onClick={(e) => handleNavClick(item.path, e)}
                   className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive
-                    ? 'text-primary-600 bg-primary-50'
-                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                    ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                 >
                   <Icon className="h-4 w-4 mr-2" />
@@ -156,29 +158,34 @@ const Navbar = () => {
               )
             })}
 
+            {/* 다크모드 토글 */}
+            <div className="flex items-center">
+              <DarkModeToggle />
+            </div>
+
             {/* 사용자 메뉴 */}
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <User className="h-4 w-4" />
-                <span>{userProfile?.name}</span>
+                <span>{currentUser?.name}</span>
                 <ChevronDown className="h-4 w-4" />
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="p-4 border-b border-gray-100">
-                    <p className="font-medium text-gray-900">{userProfile?.name}</p>
-                    <p className="text-sm text-gray-600">{userProfile?.department} • {userProfile?.position}</p>
-                    <p className="text-xs text-gray-500">{userProfile?.company}</p>
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                  <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                    <p className="font-medium text-gray-900 dark:text-white">{currentUser?.name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{currentUser?.department} • {currentUser?.position}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{currentUser?.company}</p>
                   </div>
 
                   <div className="p-2">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
                     >
                       <LogOut className="h-4 w-4" />
                       로그아웃
@@ -202,25 +209,25 @@ const Navbar = () => {
       {/* 훈련 종료 확인 모달 */}
       {showExitConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-xl">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-full">
-                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">⚠️ 훈련 종료 확인</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">⚠️ 훈련 종료 확인</h3>
             </div>
 
             <div className="mb-6">
-              <p className="text-gray-700 mb-2 font-medium">
+              <p className="text-gray-700 dark:text-gray-300 mb-2 font-medium">
                 현재 훈련이 진행 중입니다!
               </p>
-              <p className="text-gray-600 text-sm mb-3">
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
                 페이지를 떠나면 훈련 진행 상황이 저장되지 않고 처음부터 다시 시작됩니다.
               </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-red-700 font-medium text-center">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-red-700 dark:text-red-400 font-medium text-center">
                   정말 훈련을 종료하시겠습니까?
                 </p>
               </div>
@@ -229,13 +236,13 @@ const Navbar = () => {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={cancelExitTraining}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 아니오, 계속 훈련
               </button>
               <button
                 onClick={confirmExitTraining}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-800 transition-colors"
               >
                 예, 훈련 종료
               </button>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연결 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .status {
+            background: #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .next-steps {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 SHE 디지털트윈 플랫폼</h1>
+        <h2>연결 테스트 성공!</h2>
+        
+        <div class="status">
+            <h3>✅ 연결 상태 확인</h3>
+            <p>웹 서버가 정상적으로 작동하고 있습니다!</p>
+            <p>브라우저와 서버 간 통신이 성공적으로 이루어졌습니다.</p>
+        </div>
+
+        <div class="next-steps">
+            <h3>📋 다음 단계</h3>
+            <ol>
+                <li>✅ 기본 HTML 서버 연결 확인됨</li>
+                <li>🔄 React 개발 서버 문제 해결 진행</li>
+                <li>🎮 전체 플랫폼 기능 복원</li>
+                <li>🌐 Vercel 배포 준비</li>
+            </ol>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <p><strong>현재 시간:</strong> <span id="time"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // 현재 시간 표시
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleString('ko-KR');
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        console.log('🎉 SHE 플랫폼 연결 테스트 성공!');
+    </script>
+</body>
+</html>

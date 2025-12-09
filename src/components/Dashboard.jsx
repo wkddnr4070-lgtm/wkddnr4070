@@ -1,13 +1,80 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, Users, AlertTriangle, Clock, CheckCircle, BarChart3, MapPin, Eye } from 'lucide-react'
+import { Play, Users, AlertTriangle, Clock, CheckCircle, BarChart3, MapPin, Eye, Settings } from 'lucide-react'
 import { useAppContext } from '../App'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { detailedScenarios } from '../data/trainingScenarios'
+import apiClient from '../utils/apiClient'
+import SystemTest from './SystemTest'
 
 const Dashboard = () => {
-  const { scenarios, trainingHistory } = useAppContext()
+  const { scenarios, setScenarios, trainingHistory, setTrainingHistory } = useAppContext()
+  const [showSystemTest, setShowSystemTest] = useState(false)
+  const [backendData, setBackendData] = useState({ scenarios: [], training: [] })
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // 시나리오 데이터 초기화 (11/27 이전 상태 복구)
+  useEffect(() => {
+    // detailedScenarios에서 직접 시나리오 목록 생성
+    const defaultScenarios = Object.keys(detailedScenarios).map(id => {
+      const scenario = detailedScenarios[parseInt(id)]
+      return {
+        id: parseInt(id),
+        title: scenario.title,
+        description: scenario.description,
+        duration: scenario.duration,
+        difficulty: scenario.severity === 'high' ? 'high' : scenario.severity === 'medium' ? 'medium' : 'low',
+        status: 'active',
+        type: scenario.type,
+        estimatedTime: scenario.duration
+      }
+    })
+    
+    // 기본 시나리오 설정
+    if (defaultScenarios.length > 0) {
+      setScenarios(defaultScenarios)
+      console.log('✅ 기본 시나리오 데이터 설정 완료:', defaultScenarios)
+    }
+    
+    // 백엔드 데이터 로드 시도 (있으면 덮어쓰기)
+    const loadBackendData = async () => {
+      try {
+        setIsLoading(true)
+        console.log('🔄 백엔드에서 데이터 로딩 중...')
+        
+        // 시나리오 데이터 가져오기
+        const scenarioResponse = await apiClient.get('/scenarios')
+        console.log('📊 시나리오 데이터:', scenarioResponse)
+        
+        // 훈련 기록 데이터 가져오기
+        const trainingResponse = await apiClient.get('/training')
+        console.log('📈 훈련 데이터:', trainingResponse)
+        
+        setBackendData({
+          scenarios: scenarioResponse.data || [],
+          training: trainingResponse.data || []
+        })
+        
+        // Context에도 업데이트 (백엔드 데이터가 있으면 사용)
+        if (scenarioResponse.data?.length > 0) {
+          setScenarios(scenarioResponse.data)
+        }
+        if (trainingResponse.data?.length > 0) {
+          setTrainingHistory(trainingResponse.data)
+        }
+        
+        console.log('✅ 백엔드 데이터 로드 완료')
+      } catch (error) {
+        console.log('⚠️ 백엔드 연결 실패, 로컬 데이터 사용:', error.message)
+        // 백엔드 연결 실패 시 기본 데이터 유지 (이미 설정됨)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadBackendData()
+  }, [setScenarios, setTrainingHistory])
 
   // 최근 활동 (훈련 이력에서 생성)
   const recentActivities = trainingHistory
@@ -46,8 +113,23 @@ const Dashboard = () => {
     <div className="space-y-8">
       {/* 헤더 섹션 */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">도시가스 비상대응 모의훈련 대시보드</h1>
-                <p className="text-gray-600">시나리오 기반 도시가스 비상대응 훈련을 시작하세요</p>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">도시가스 비상대응 모의훈련 대시보드</h1>
+            <p className="text-gray-600">시나리오 기반 도시가스 비상대응 훈련을 시작하세요</p>
+          </div>
+          <button
+            onClick={() => setShowSystemTest(!showSystemTest)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+              showSystemTest 
+                ? 'bg-blue-600 text-white border-blue-600' 
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            {showSystemTest ? '시스템 점검 숨기기' : '시스템 점검'}
+          </button>
+        </div>
       </div>
 
       {/* 통계 카드 */}
@@ -156,7 +238,7 @@ const Dashboard = () => {
                         
                         <div className="flex items-center gap-3">
                           <Link
-                            to={`/training/${scenario.id}`}
+                            to={`/training/advanced/${scenario.id}`}
                             className="bg-danger-600 text-white px-6 py-3 rounded-lg hover:bg-danger-700 transition-colors flex items-center gap-2 font-medium"
                           >
                             <Play className="h-5 w-5" />
@@ -277,6 +359,13 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* 시스템 점검 */}
+      {showSystemTest && (
+        <div className="mt-8">
+          <SystemTest />
+        </div>
+      )}
     </div>
   )
 }

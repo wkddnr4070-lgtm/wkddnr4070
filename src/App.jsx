@@ -1,18 +1,25 @@
-import React, { useState, createContext, useContext, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { ThemeProvider } from './contexts/ThemeContext'
+import LoginPage from './components/LoginPage'
+import Register from './components/Register'
+import BackendLogin from './components/BackendLogin'
+import Navbar from './components/Navbar'
 import Dashboard from './components/Dashboard'
+import OrganizationManagement from './components/OrganizationManagement'
 import ScenarioTraining from './components/ScenarioTraining'
 import AdvancedTrainingEngine from './components/AdvancedTrainingEngine'
-import RoleAssignment from './components/RoleAssignment'
-import EvaluationReport from './components/EvaluationReport'
-import TrainingManagement from './components/TrainingManagement'
 import TeamManagement from './components/TeamManagement'
 import TeamTrainingEngine from './components/TeamTrainingEngine'
 import UserProfile from './components/UserProfile'
-import BackendLogin from './components/BackendLogin'
-import Navbar from './components/Navbar'
+import TrainingManagement from './components/TrainingManagement'
+import EvaluationReport from './components/EvaluationReport'
+import RoleAssignment from './components/RoleAssignment'
+import EmergencyMap from './components/EmergencyMap'
+import apiClient from './utils/apiClient'
+import { detailedScenarios } from './data/trainingScenarios'
 
-// 전역 상태 관리를 위한 Context
+// Context 생성
 const AppContext = createContext()
 
 export const useAppContext = () => {
@@ -24,407 +31,537 @@ export const useAppContext = () => {
 }
 
 function App() {
-  // 백엔드 연결 모드 (개발용)
-  const [useBackendAPI, setUseBackendAPI] = useState(false)
-
-  // 사용자 프로필 상태
-  const [userProfile, setUserProfile] = useState(null)
-  const [isProfileSetup, setIsProfileSetup] = useState(false)
-
-  // 훈련 이력 상태
+  // 상태 관리
+  const [scenarios, setScenarios] = useState([])
   const [trainingHistory, setTrainingHistory] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
+  const [notifications, setNotifications] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [companyOrganizations, setCompanyOrganizations] = useState({})
+  const [roleAssignments, setRoleAssignments] = useState({})
 
-  // 역할 배정 상태
-  const [roleAssignments, setRoleAssignments] = useState(() => {
-    const saved = localStorage.getItem('roleAssignments')
-    return saved ? JSON.parse(saved) : {}
-  })
-
-  // 회사별 실제 조직도 데이터 (인원 포함)
-  const [companyOrganizations, setCompanyOrganizations] = useState({
-    'SK E&S': {
-      '경영지원실': {
-        '인사팀': ['김민수 (팀장)', '이영희 (차장)', '박철호 (과장)', '정수연 (대리)', '최현우 (사원)'],
-        '재무팀': ['장호영 (팀장)', '신미경 (차장)', '윤재호 (과장)', '서지혜 (대리)', '김동현 (사원)', '이소영 (사원)'],
-        '법무팀': ['홍성민 (팀장)', '권혜진 (과장)', '조민석 (대리)', '한지원 (사원)'],
-        '홍보팀': ['배성호 (팀장)', '임은정 (과장)', '나혜원 (대리)', '오준혁 (사원)'],
-        '전산팀': ['전상욱 (팀장)', '유미영 (차장)', '송준호 (과장)', '문지현 (대리)', '강태우 (사원)', '김수빈 (사원)']
-      },
-      '사업운영실': {
-        '가스사업팀': ['이대성 (팀장)', '김영수 (차장)', '박미영 (과장)', '정훈기 (과장)', '최지영 (대리)', '황민준 (대리)', '서현아 (사원)', '노태준 (사원)'],
-        '발전사업팀': ['안정호 (팀장)', '심재원 (차장)', '고은수 (과장)', '배준영 (대리)', '오수진 (대리)', '임현석 (사원)'],
-        '신재생사업팀': ['조성환 (팀장)', '금소영 (과장)', '하동석 (과장)', '구민정 (대리)', '양호진 (사원)', '김은비 (사원)'],
-        '안전관리팀': ['문창호 (팀장)', '백지선 (차장)', '허준영 (과장)', '도현우 (대리)', '이채영 (대리)', '정민호 (사원)', '윤서연 (사원)']
-      },
-      '투자개발실': {
-        '투자기획팀': ['석민규 (팀장)', '남혜림 (차장)', '홍준석 (과장)', '차은영 (대리)', '김성민 (사원)'],
-        '사업개발팀': ['류성호 (팀장)', '전은지 (과장)', '신동혁 (과장)', '원지혜 (대리)', '봉태현 (사원)', '한소영 (사원)'],
-        '해외사업팀': ['곽정민 (팀장)', '소미래 (차장)', '표준영 (과장)', '길현주 (대리)', '방준호 (사원)'],
-        'M&A팀': ['옥승현 (팀장)', '변수정 (과장)', '추민석 (대리)', '설지원 (사원)']
-      }
-    },
-    '코원에너지서비스': {
-      '경영지원실': {
-        '인사팀': ['강대현 (팀장)', '조혜진 (차장)', '송민영 (과장)', '이현우 (대리)', '박소연 (사원)', '김태민 (사원)'],
-        '총무팀': ['유재석 (팀장)', '한미경 (과장)', '노준호 (대리)', '서지수 (사원)', '최현정 (사원)'],
-        '재무회계팀': ['임성훈 (팀장)', '정은영 (차장)', '황동석 (과장)', '김지원 (과장)', '박현수 (대리)', '이미지 (대리)', '오지훈 (사원)'],
-        '법무팀': ['문재호 (팀장)', '백현정 (과장)', '신준영 (대리)', '양수진 (사원)'],
-        '홍보팀': ['고성민 (팀장)', '지은실 (과장)', '허지혜 (대리)', '남태현 (사원)']
-      },
-      '사업운영실': {
-        '고객서비스팀': ['설현호 (팀장)', '김미영 (차장)', '박준석 (과장)', '이소정 (과장)', '정현우 (대리)', '최지영 (대리)', '윤민준 (사원)', '한서연 (사원)'],
-        '안전관리팀': ['배정민 (팀장)', '소혜진 (차장)', '홍동혁 (과장)', '김현주 (과장)', '박태우 (대리)', '이은비 (대리)', '정성호 (사원)', '오지원 (사원)'],
-        '시설점검팀': ['문승현 (팀장)', '유미경 (과장)', '노현석 (과장)', '서지혜 (대리)', '김준호 (대리)', '이채영 (사원)', '박민수 (사원)'],
-        '공급관리팀': ['전대호 (팀장)', '한은정 (차장)', '송준영 (과장)', '김현우 (대리)', '정소연 (대리)', '최태민 (사원)'],
-        '공사관리팀': ['임현민 (팀장)', '백지수 (과장)', '신동석 (과장)', '오현주 (대리)', '양준호 (사원)', '윤서진 (사원)']
-      },
-      '영업개발실': {
-        '영업1팀': ['조성호 (팀장)', '김혜영 (차장)', '박민석 (과장)', '이지원 (과장)', '정현수 (대리)', '최소영 (대리)', '윤태현 (사원)'],
-        '영업2팀': ['황재민 (팀장)', '서미경 (차장)', '노준영 (과장)', '김현정 (대리)', '박지훈 (대리)', '이수연 (사원)', '정민호 (사원)'],
-        '영업기획팀': ['신성훈 (팀장)', '유혜진 (과장)', '홍동우 (과장)', '김지혜 (대리)', '박현석 (사원)', '이소정 (사원)'],
-        '마케팅팀': ['문정호 (팀장)', '전은영 (과장)', '송현주 (대리)', '김태우 (대리)', '박서연 (사원)', '오준석 (사원)'],
-        '신사업추진팀': ['배현수 (팀장)', '고미영 (과장)', '허준호 (대리)', '양지원 (대리)', '윤성민 (사원)']
-      }
-    },
-    // 다른 회사들도 동일한 구조로 추가...
-    '부산도시가스': {
-      '안전기술실': {
-        '안전관리팀': ['최성호 (팀장)', '김혜림 (차장)', '박준석 (과장)', '이현우 (과장)', '정소연 (대리)', '윤태현 (대리)', '한지원 (사원)', '오민준 (사원)'],
-        '기술개발팀': ['장대현 (팀장)', '서미경 (차장)', '노현석 (과장)', '김지혜 (대리)', '박현수 (대리)', '이수연 (사원)', '정민호 (사원)'],
-        '품질보증팀': ['임재호 (팀장)', '유혜진 (과장)', '홍동우 (과장)', '김현정 (대리)', '박서연 (사원)', '오준석 (사원)'],
-        '설비점검팀': ['문성민 (팀장)', '전은영 (차장)', '송현주 (과장)', '김태우 (대리)', '양지원 (대리)', '윤성민 (사원)', '한소영 (사원)'],
-        '긴급대응팀': ['배현호 (팀장)', '고미영 (과장)', '허준호 (과장)', '이지원 (대리)', '정현석 (사원)', '최지영 (사원)']
-      },
-      '고객경영실': {
-        '고객지원팀': ['신대성 (팀장)', '백혜진 (차장)', '김준영 (과장)', '박현주 (과장)', '이태우 (대리)', '정소영 (대리)', '윤민준 (사원)', '한서연 (사원)'],
-        'CRM팀': ['조성훈 (팀장)', '유미영 (과장)', '노동석 (과장)', '김지혜 (대리)', '박현수 (대리)', '이수연 (사원)'],
-        '서비스운영팀': ['황재민 (팀장)', '서은정 (차장)', '홍준영 (과장)', '김현정 (대리)', '정태현 (대리)', '박소영 (사원)', '오준석 (사원)'],
-        '민원처리팀': ['문정호 (팀장)', '전혜림 (과장)', '송현우 (과장)', '김지원 (대리)', '양현석 (사원)', '윤서진 (사원)'],
-        '교육훈련팀': ['배현수 (팀장)', '고은영 (과장)', '허지혜 (대리)', '이소정 (대리)', '정민호 (사원)']
-      },
-      '재무전략실': {
-        '재무관리팀': ['임성호 (팀장)', '김미경 (차장)', '박동석 (과장)', '이현주 (과장)', '정태우 (대리)', '최소연 (대리)', '윤준호 (사원)'],
-        '경영기획팀': ['신재민 (팀장)', '유혜진 (차장)', '노현우 (과장)', '김지원 (대리)', '박현석 (대리)', '이수영 (사원)', '정민수 (사원)'],
-        '투자전략팀': ['조대현 (팀장)', '서은정 (과장)', '홍준석 (과장)', '김현정 (대리)', '양지혜 (사원)', '윤성민 (사원)'],
-        '리스크관리팀': ['황성훈 (팀장)', '전미영 (과장)', '송현주 (대리)', '김태현 (대리)', '박서연 (사원)'],
-        '회계팀': ['문재호 (팀장)', '백혜림 (차장)', '김준영 (과장)', '이지원 (과장)', '정현우 (대리)', '최소영 (대리)', '윤태민 (사원)', '한지수 (사원)']
-      }
-    },
-    '영남에너지서비스(구미)': {
-      '사업운영실': {
-        '현장관리팀': ['김현수 (팀장)', '박미경 (차장)', '이준석 (과장)', '정소영 (과장)', '최태우 (대리)', '윤지혜 (대리)', '한민준 (사원)', '오서연 (사원)'],
-        '공급관리팀': ['신대현 (팀장)', '유혜진 (차장)', '노동석 (과장)', '김현정 (대리)', '박준호 (대리)', '이수연 (사원)', '정민호 (사원)'],
-        '안전점검팀': ['조성훈 (팀장)', '서은영 (과장)', '홍준영 (과장)', '김지원 (대리)', '양현석 (대리)', '윤서진 (사원)', '한소영 (사원)'],
-        '시공팀': ['황재민 (팀장)', '전혜림 (차장)', '송현우 (과장)', '김태현 (과장)', '정소연 (대리)', '박지훈 (대리)', '이채영 (사원)'],
-        '설비관리팀': ['문정호 (팀장)', '백은정 (과장)', '허지혜 (과장)', '이현주 (대리)', '양준석 (사원)', '윤태민 (사원)']
-      },
-      '경영지원실': {
-        '인사총무팀': ['배현수 (팀장)', '고미영 (차장)', '김준영 (과장)', '박현주 (과장)', '이태우 (대리)', '정소영 (대리)', '최지영 (사원)'],
-        '회계재무팀': ['임성호 (팀장)', '신혜진 (차장)', '노현석 (과장)', '김지혜 (대리)', '박현수 (대리)', '이수연 (사원)', '정민수 (사원)'],
-        '전산팀': ['조대현 (팀장)', '유은정 (과장)', '홍준석 (과장)', '김현정 (대리)', '양지혜 (사원)', '윤성민 (사원)'],
-        '홍보팀': ['황성훈 (팀장)', '서미영 (과장)', '송현주 (대리)', '김태현 (대리)', '박서연 (사원)'],
-        '법무팀': ['문재호 (팀장)', '전혜림 (과장)', '김준영 (대리)', '이지원 (사원)']
-      },
-      '에너지전략실': {
-        '영업1팀': ['신재민 (팀장)', '백미경 (차장)', '노현우 (과장)', '김지원 (과장)', '정태우 (대리)', '최소연 (대리)', '윤준호 (사원)'],
-        '영업2팀': ['조성호 (팀장)', '유혜진 (차장)', '박동석 (과장)', '이현주 (대리)', '양현석 (대리)', '한지수 (사원)', '정민호 (사원)'],
-        '마케팅팀': ['황재훈 (팀장)', '서은정 (과장)', '홍준석 (과장)', '김현정 (대리)', '박지혜 (사원)', '윤서진 (사원)'],
-        '신재생에너지팀': ['임대호 (팀장)', '전미영 (과장)', '송현주 (과장)', '김태현 (대리)', '이소영 (대리)', '정준석 (사원)'],
-        '사업기획팀': ['문성민 (팀장)', '백혜림 (차장)', '노준영 (과장)', '이지원 (대리)', '양태우 (사원)', '윤현정 (사원)']
-      }
-    },
-    '영남에너지서비스(포항)': {
-      '안전기술실': {
-        '안전관리팀': ['김성호 (팀장)', '박혜림 (차장)', '이준석 (과장)', '정현우 (과장)', '최소연 (대리)', '윤태현 (대리)', '한지원 (사원)', '오민준 (사원)'],
-        '설비기술팀': ['장대현 (팀장)', '서미경 (차장)', '노현석 (과장)', '김지혜 (대리)', '박현수 (대리)', '이수연 (사원)', '정민호 (사원)'],
-        '품질보증팀': ['임재호 (팀장)', '유혜진 (과장)', '홍동우 (과장)', '김현정 (대리)', '양지혜 (사원)', '윤성민 (사원)'],
-        '긴급대응팀': ['조성훈 (팀장)', '전은영 (과장)', '송현주 (과장)', '김태현 (대리)', '박서연 (대리)', '이준호 (사원)'],
-        '안전교육팀': ['황재민 (팀장)', '백미영 (과장)', '허준호 (대리)', '이지원 (대리)', '정현석 (사원)']
-      },
-      '경영지원실': {
-        '인사총무팀': ['문정호 (팀장)', '고은정 (차장)', '김준영 (과장)', '박현주 (과장)', '이태우 (대리)', '정소영 (대리)', '최지영 (사원)'],
-        '회계팀': ['신대성 (팀장)', '유혜진 (차장)', '노동석 (과장)', '김지원 (대리)', '양현석 (대리)', '윤서진 (사원)', '한소영 (사원)'],
-        '경영기획팀': ['배현수 (팀장)', '서미경 (차장)', '홍준영 (과장)', '김현정 (과장)', '정태현 (대리)', '박지훈 (대리)', '이수연 (사원)'],
-        '홍보팀': ['조대현 (팀장)', '전혜림 (과장)', '송현우 (대리)', '김태현 (대리)', '양지혜 (사원)'],
-        '법무팀': ['황성훈 (팀장)', '백은정 (과장)', '허지혜 (대리)', '이현주 (사원)']
-      },
-      '사업운영실': {
-        '고객서비스팀': ['임성호 (팀장)', '김미경 (차장)', '박동석 (과장)', '이현주 (과장)', '정태우 (대리)', '최소연 (대리)', '윤준호 (사원)', '한지수 (사원)'],
-        '공급관리팀': ['신재민 (팀장)', '유혜진 (차장)', '노현우 (과장)', '김지원 (대리)', '양현석 (대리)', '박서연 (사원)', '정민수 (사원)'],
-        '공사관리팀': ['조성호 (팀장)', '서은정 (차장)', '홍준석 (과장)', '김현정 (과장)', '이태현 (대리)', '윤서진 (대리)', '한소영 (사원)'],
-        '현장점검팀': ['황재훈 (팀장)', '전미영 (과장)', '송현주 (과장)', '김태현 (대리)', '정지혜 (대리)', '이준석 (사원)', '양태우 (사원)'],
-        '시공지원팀': ['문대호 (팀장)', '백혜림 (차장)', '허준영 (과장)', '이지원 (대리)', '박현석 (사원)', '윤현정 (사원)']
-      }
-    },
-    '전북에너지서비스': {
-      '대표이사': {
-        '사업운영실': {
-          '경영지원팀': ['김대현 (팀장)', '박혜진 (차장)', '이준석 (과장)', '정현우 (과장)', '최소연 (대리)', '윤태현 (대리)', '한지원 (사원)'],
-          '고객서비스팀': ['문정호 (팀장)', '고은정 (차장)', '김준영 (과장)', '박현주 (과장)', '이태우 (대리)', '정소영 (대리)', '최지영 (사원)', '윤민준 (사원)'],
-          '영업공무팀': ['장호영 (팀장)', '서미경 (차장)', '노현석 (과장)', '김지혜 (과장)', '박현수 (대리)', '이수연 (대리)', '정민호 (사원)', '오준석 (사원)'],
-          '영업개발팀': ['임성호 (팀장)', '김미경 (차장)', '박동석 (과장)', '이현주 (과장)', '정태우 (대리)', '최소연 (대리)', '윤준호 (사원)'],
-          '안전관리팀': ['신대성 (팀장)', '유혜진 (차장)', '노동석 (과장)', '김지원 (과장)', '양현석 (대리)', '윤서진 (대리)', '한소영 (사원)', '정태현 (사원)'],
-          '정읍지사': ['조대현 (지사장)', '전혜림 (과장)', '송현우 (과장)', '김태현 (대리)', '양지혜 (대리)', '윤성민 (사원)', '한지수 (사원)']
-        },
-        '본사부': ['임재호 (부장)', '유혜진 (차장)', '홍동우 (과장)', '김현정 (대리)', '양지혜 (사원)'],
-        'RM팀': ['조성훈 (팀장)', '전은영 (과장)', '송현주 (대리)', '김태현 (대리)', '박서연 (사원)']
-      }
-    },
-    '충청에너지서비스': {
-      '경영지원실': {
-        '인사팀': ['김성호 (팀장)', '박혜림 (차장)', '이준석 (과장)', '정현우 (대리)', '최소연 (대리)', '윤태현 (사원)', '한지원 (사원)'],
-        '재무팀': ['장대현 (팀장)', '서미경 (차장)', '노현석 (과장)', '김지혜 (과장)', '박현수 (대리)', '이수연 (대리)', '정민호 (사원)'],
-        '총무팀': ['임재호 (팀장)', '유혜진 (과장)', '홍동우 (과장)', '김현정 (대리)', '양지혜 (사원)', '윤성민 (사원)'],
-        '홍보팀': ['조성훈 (팀장)', '전은영 (과장)', '송현주 (대리)', '김태현 (대리)', '박서연 (사원)'],
-        '전산팀': ['황재민 (팀장)', '백미영 (차장)', '허준호 (과장)', '이지원 (과장)', '정현석 (대리)', '최지영 (대리)', '윤민준 (사원)']
-      },
-      '안전운영실': {
-        '안전점검팀': ['문정호 (팀장)', '고은정 (차장)', '김준영 (과장)', '박현주 (과장)', '이태우 (대리)', '정소영 (대리)', '한소영 (사원)', '오준석 (사원)'],
-        '긴급대응팀': ['신대성 (팀장)', '유혜진 (차장)', '노동석 (과장)', '김지원 (대리)', '양현석 (대리)', '윤서진 (사원)', '정태현 (사원)'],
-        '설비관리팀': ['배현수 (팀장)', '서미경 (과장)', '홍준영 (과장)', '김현정 (과장)', '정태현 (대리)', '박지훈 (대리)', '이수연 (사원)'],
-        '품질관리팀': ['조대현 (팀장)', '전혜림 (과장)', '송현우 (과장)', '김태현 (대리)', '양지혜 (대리)', '윤성민 (사원)'],
-        '교육훈련팀': ['황성훈 (팀장)', '백은정 (과장)', '허지혜 (대리)', '이현주 (대리)', '정준석 (사원)', '박현석 (사원)']
-      },
-      '사업개발실': {
-        '영업팀': ['임성호 (팀장)', '김미경 (차장)', '박동석 (과장)', '이현주 (과장)', '정태우 (대리)', '최소연 (대리)', '윤준호 (사원)', '한지수 (사원)'],
-        '마케팅팀': ['신재민 (팀장)', '유혜진 (과장)', '노현우 (과장)', '김지원 (대리)', '양현석 (사원)', '박서연 (사원)'],
-        '사업기획팀': ['조성호 (팀장)', '서은정 (차장)', '홍준석 (과장)', '김현정 (과장)', '이태현 (대리)', '윤서진 (대리)', '한소영 (사원)'],
-        '고객서비스팀': ['황재훈 (팀장)', '전미영 (과장)', '송현주 (과장)', '김태현 (대리)', '정지혜 (대리)', '이준석 (사원)', '양태우 (사원)'],
-        '신재생사업팀': ['문대호 (팀장)', '백혜림 (차장)', '허준영 (과장)', '이지원 (대리)', '박현석 (사원)', '윤현정 (사원)']
-      }
-    },
-    '전남도시가스': {
-      '안전기술실': {
-        '안전관리팀': ['최성호 (팀장)', '김혜림 (차장)', '박준석 (과장)', '이현우 (과장)', '정소연 (대리)', '윤태현 (대리)', '한지원 (사원)', '오민준 (사원)'],
-        '기술개발팀': ['장대현 (팀장)', '서미경 (차장)', '노현석 (과장)', '김지혜 (대리)', '박현수 (대리)', '이수연 (사원)', '정민호 (사원)'],
-        '품질보증팀': ['임재호 (팀장)', '유혜진 (과장)', '홍동우 (과장)', '김현정 (대리)', '양지혜 (사원)', '윤성민 (사원)'],
-        '설비점검팀': ['조성훈 (팀장)', '전은영 (차장)', '송현주 (과장)', '김태현 (대리)', '박서연 (대리)', '이준호 (사원)', '한소영 (사원)'],
-        '교육훈련팀': ['황재민 (팀장)', '백미영 (과장)', '허준호 (과장)', '이지원 (대리)', '정현석 (사원)', '최지영 (사원)']
-      },
-      '경영전략실': {
-        '인사팀': ['문정호 (팀장)', '고은정 (차장)', '김준영 (과장)', '박현주 (대리)', '이태우 (대리)', '정소영 (사원)', '윤민준 (사원)'],
-        '경영기획팀': ['신대성 (팀장)', '유혜진 (차장)', '노동석 (과장)', '김지원 (과장)', '양현석 (대리)', '윤서진 (대리)', '정태현 (사원)', '한지수 (사원)'],
-        '재무팀': ['배현수 (팀장)', '서미경 (차장)', '홍준영 (과장)', '김현정 (대리)', '정태현 (대리)', '박지훈 (사원)', '이수연 (사원)'],
-        '법무팀': ['조대현 (팀장)', '전혜림 (과장)', '송현우 (대리)', '김태현 (대리)', '양지혜 (사원)', '윤성민 (사원)'],
-        '홍보팀': ['황성훈 (팀장)', '백은정 (과장)', '허지혜 (과장)', '이현주 (대리)', '정준석 (사원)']
-      },
-      '사업운영실': {
-        '고객서비스팀': ['임성호 (팀장)', '김미경 (차장)', '박동석 (과장)', '이현주 (과장)', '정태우 (대리)', '최소연 (대리)', '윤준호 (사원)', '한소영 (사원)'],
-        '공급관리팀': ['신재민 (팀장)', '유혜진 (차장)', '노현우 (과장)', '김지원 (대리)', '양현석 (대리)', '박서연 (사원)', '정민수 (사원)'],
-        '공사관리팀': ['조성호 (팀장)', '서은정 (차장)', '홍준석 (과장)', '김현정 (과장)', '이태현 (대리)', '윤서진 (대리)', '오준석 (사원)'],
-        '시공지원팀': ['황재훈 (팀장)', '전미영 (과장)', '송현주 (과장)', '김태현 (대리)', '정지혜 (대리)', '이준석 (사원)', '양태우 (사원)'],
-        '민원처리팀': ['문대호 (팀장)', '백혜림 (차장)', '허준영 (과장)', '이지원 (대리)', '박현석 (사원)', '윤현정 (사원)']
-      }
-    },
-    '강원도시가스': {
-      '경영지원실': {
-        '인사총무팀': ['김대현 (팀장)', '박혜진 (차장)', '이준석 (과장)', '정현우 (과장)', '최소연 (대리)', '윤태현 (대리)', '한지원 (사원)'],
-        '재무회계팀': ['장호영 (팀장)', '서미경 (차장)', '노현석 (과장)', '김지혜 (과장)', '박현수 (대리)', '이수연 (대리)', '정민호 (사원)', '오준석 (사원)'],
-        '전산팀': ['임재호 (팀장)', '유혜진 (과장)', '홍동우 (과장)', '김현정 (대리)', '양지혜 (대리)', '윤성민 (사원)'],
-        '홍보팀': ['조성훈 (팀장)', '전은영 (과장)', '송현주 (대리)', '김태현 (대리)', '박서연 (사원)'],
-        '법무팀': ['황재민 (팀장)', '백미영 (과장)', '허준호 (대리)', '이지원 (사원)']
-      },
-      '안전운영실': {
-        '안전관리팀': ['문정호 (팀장)', '고은정 (차장)', '김준영 (과장)', '박현주 (과장)', '이태우 (대리)', '정소영 (대리)', '최지영 (사원)', '윤민준 (사원)'],
-        '긴급대응팀': ['신대성 (팀장)', '유혜진 (차장)', '노동석 (과장)', '김지원 (대리)', '양현석 (대리)', '윤서진 (사원)', '한소영 (사원)'],
-        '설비점검팀': ['배현수 (팀장)', '서미경 (과장)', '홍준영 (과장)', '김현정 (과장)', '정태현 (대리)', '박지훈 (대리)', '이수연 (사원)'],
-        '품질관리팀': ['조대현 (팀장)', '전혜림 (과장)', '송현우 (과장)', '김태현 (대리)', '양지혜 (대리)', '윤성민 (사원)', '정태현 (사원)'],
-        '안전교육팀': ['황성훈 (팀장)', '백은정 (과장)', '허지혜 (대리)', '이현주 (대리)', '정준석 (사원)', '박현석 (사원)']
-      },
-      '영업개발실': {
-        '영업1팀': ['임성호 (팀장)', '김미경 (차장)', '박동석 (과장)', '이현주 (과장)', '정태우 (대리)', '최소연 (대리)', '윤준호 (사원)'],
-        '영업2팀': ['신재민 (팀장)', '유혜진 (차장)', '노현우 (과장)', '김지원 (대리)', '양현석 (대리)', '박서연 (사원)', '정민수 (사원)'],
-        '마케팅팀': ['조성호 (팀장)', '서은정 (과장)', '홍준석 (과장)', '김현정 (과장)', '이태현 (대리)', '윤서진 (대리)', '한지수 (사원)'],
-        '신사업팀': ['황재훈 (팀장)', '전미영 (과장)', '송현주 (과장)', '김태현 (대리)', '정지혜 (대리)', '이준석 (사원)', '양태우 (사원)'],
-        '고객관리팀': ['문대호 (팀장)', '백혜림 (차장)', '허준영 (과장)', '이지원 (대리)', '박현석 (사원)', '윤현정 (사원)']
-      }
-    }
-  })
-
-  // 컴포넌트 마운트 시 저장된 프로필 확인
+  // 인증 상태 확인 및 초기화
   useEffect(() => {
-    const savedProfile = localStorage.getItem('userProfile')
-    if (savedProfile) {
+    const initializeAuth = async () => {
       try {
-        const profile = JSON.parse(savedProfile)
-        setUserProfile(profile)
-        setIsProfileSetup(true)
+        const token = localStorage.getItem('authToken')
+        if (token) {
+          apiClient.setToken(token)
+          // 토큰이 있으면 인증된 것으로 간주 (프로필 조회는 선택적)
+          setIsAuthenticated(true)
+          
+          // 프로필 조회 시도 (apiClient의 타임아웃 사용)
+          try {
+            const response = await apiClient.get('/auth/profile')
+            if (response && response.success && response.data && response.data.user) {
+              setCurrentUser(response.data.user)
+              localStorage.setItem('currentUser', JSON.stringify(response.data.user))
+              console.log('✅ 인증 상태 복구:', response.data.user)
+            }
+          } catch (error) {
+            // 프로필 조회 실패해도 토큰이 있으면 인증 상태 유지
+            console.log('⚠️ 프로필 조회 실패, 토큰 기반 인증 유지:', error.message)
+            // 로컬 스토리지에서 사용자 정보 복구 시도
+            const savedUser = localStorage.getItem('currentUser')
+            if (savedUser) {
+              try {
+                setCurrentUser(JSON.parse(savedUser))
+              } catch (e) {
+                console.warn('사용자 정보 파싱 실패')
+              }
+            }
+          }
+        } else {
+          // 토큰이 없으면 비인증 상태로 설정
+          setIsAuthenticated(false)
+          console.log('ℹ️ 토큰 없음, 비인증 상태')
+        }
       } catch (error) {
-        console.error('프로필 로드 실패:', error)
+        console.error('인증 초기화 오류:', error)
+        // 오류 발생 시에도 로딩 해제
+        setIsAuthenticated(false)
+      } finally {
+        // 항상 로딩 해제
+        setIsLoading(false)
+        console.log('✅ 인증 초기화 완료, 로딩 해제')
       }
     }
+
+    initializeAuth()
   }, [])
 
-  // 시나리오 상태 (완료 여부 관리)
-  const [scenarios, setScenarios] = useState([
-    {
-      id: 1,
-      title: 'OO동 OOO아파트 인근 도시가스 중압배관 파손',
-      description: '평일 09:35 발생한 도시가스 배관 파손 사고 대응 훈련',
-      difficulty: 'high',
-      estimatedTime: '45분',
-      status: 'available',
-      completedCount: trainingHistory.filter(h => h.scenarioId === 1).length,
-      uniqueParticipants: new Set(trainingHistory.filter(h => h.scenarioId === 1).map(h => h.participant)).size
-    },
-    {
-      id: 2,
-      title: '무단굴착공사로 인한 도시가스 중압배관 파손',
-      description: '전라북도 익산시 신동 123-45 일대 무단굴착공사 중 발생한 도시가스 중압배관 파손 사고 대응 훈련',
-      difficulty: 'high',
-      estimatedTime: '25분',
-      status: 'available',
-      completedCount: trainingHistory.filter(h => h.scenarioId === 2).length,
-      uniqueParticipants: new Set(trainingHistory.filter(h => h.scenarioId === 2).map(h => h.participant)).size
-    },
-    {
-      id: 3,
-      title: '도시가스 저압배관 파손 사고 대응 팀 훈련',
-      description: '전라북도 익산시 평화동 456-78 일대 도로공사 중 발생한 도시가스 저압배관 파손 사고 대응 훈련',
-      difficulty: 'medium',
-      estimatedTime: '20분',
-      status: 'available',
-      completedCount: trainingHistory.filter(h => h.scenarioId === 3).length,
-      uniqueParticipants: new Set(trainingHistory.filter(h => h.scenarioId === 3).map(h => h.participant)).size
+  // 기본 시나리오 데이터 설정 (11/27 이전 상태 복구)
+  const setDefaultScenarios = () => {
+    // detailedScenarios에서 직접 시나리오 목록 생성
+    const defaultScenarios = Object.keys(detailedScenarios).map(id => {
+      const scenario = detailedScenarios[parseInt(id)]
+      return {
+        id: parseInt(id),
+        title: scenario.title,
+        description: scenario.description,
+        duration: scenario.duration,
+        difficulty: scenario.severity === 'high' ? 'high' : scenario.severity === 'medium' ? 'medium' : 'low',
+        status: 'active',
+        type: scenario.type,
+        estimatedTime: scenario.duration
+      }
+    })
+    
+    if (defaultScenarios.length > 0) {
+      setScenarios(defaultScenarios)
+      console.log('✅ 기본 시나리오 데이터 설정 완료 (11/27 이전 상태):', defaultScenarios)
     }
-  ])
-
-  // 백엔드 로그인 성공 핸들러
-  const handleBackendLoginSuccess = (userData) => {
-    console.log('🎉 백엔드 로그인 성공:', userData)
-    setUserProfile(userData)
-    setIsProfileSetup(true)
   }
 
-  // 로그아웃 핸들러
-  const handleLogout = () => {
-    console.log('🚪 로그아웃')
-    setUserProfile(null)
-    setIsProfileSetup(false)
-    localStorage.removeItem('userProfile')
-    localStorage.removeItem('authToken')
-  }
-
-  // 프로필 설정 완료 핸들러
-  const handleProfileComplete = (profile) => {
-    setUserProfile(profile)
-    setIsProfileSetup(true)
-    localStorage.setItem('userProfile', JSON.stringify(profile))
-  }
-
-  // 프로필 초기화 (로그아웃)
-  const resetProfile = () => {
-    setUserProfile(null)
-    setIsProfileSetup(false)
-    localStorage.removeItem('userProfile')
-  }
-
-  // 훈련 완료 시 호출되는 함수
-  const completeTraining = (trainingData) => {
-    const newHistory = {
-      id: Date.now(),
-      scenarioId: trainingData.scenarioId,
-      scenarioTitle: trainingData.scenarioTitle,
-      participant: trainingData.participant,
-      score: trainingData.score,
-      timeSpent: trainingData.timeSpent,
-      completedAt: new Date().toISOString(),
-      actions: trainingData.actions || [],
-      feedback: trainingData.feedback || ''
+  // 백엔드 데이터 로드 (인증된 경우에만)
+  useEffect(() => {
+    // 기본 시나리오 먼저 설정 (11/27 이전 상태)
+    setDefaultScenarios()
+    
+    if (isAuthenticated && currentUser) {
+      loadBackendData()
     }
+    // 비인증 상태에서는 기본 데이터 유지 (이미 설정됨)
 
-    const updatedHistory = [...trainingHistory, newHistory]
-    setTrainingHistory(updatedHistory)
+    // 훈련 히스토리 로컬 스토리지에서 로드
+    const savedHistory = localStorage.getItem('trainingHistory')
+    if (savedHistory) {
+      try {
+        setTrainingHistory(JSON.parse(savedHistory))
+      } catch (error) {
+        console.error('훈련 히스토리 로드 실패:', error)
+      }
+    }
+  }, [isAuthenticated, currentUser])
 
-    // 시나리오 완료 횟수 및 참여자 수 업데이트
-    setScenarios(prev => prev.map(scenario => {
-      if (scenario.id === trainingData.scenarioId) {
-        const scenarioHistory = updatedHistory.filter(h => h.scenarioId === scenario.id)
-        return {
-          ...scenario,
-          completedCount: scenarioHistory.length,
-          uniqueParticipants: new Set(scenarioHistory.map(h => h.participant)).size
+  // 조직 데이터 로드 (11/27 이전 상태 복구)
+  useEffect(() => {
+    // 기본 조직 데이터 즉시 설정 (11/27 이전 구조)
+    setDefaultOrganizationData()
+    
+    // 백엔드에서 조직 데이터 로드 시도 (있으면 덮어쓰기)
+    loadOrganizationData()
+  }, [])
+  
+  const loadOrganizationData = async () => {
+    try {
+      // 백엔드에서 조직 데이터 로드 시도
+      const response = await apiClient.get('/organization/companies')
+      if (response.success && response.data && response.data.length > 0) {
+        // 백엔드 API 응답을 companyOrganizations 구조로 변환
+        // TODO: 실제 API 응답 구조에 맞게 변환 로직 구현
+        // 현재는 기본 데이터 유지
+      }
+    } catch (error) {
+      console.log('조직 데이터 로드 실패, 기본 구조 사용:', error.message)
+      // 기본 조직 구조는 이미 설정됨
+    }
+  }
+  
+  // 기본 조직 데이터 설정 (11/27 이전 구조: 대표이사 → 실 → 조직)
+  const setDefaultOrganizationData = () => {
+    const defaultOrgs = {
+      'SK E&S': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['김민수 (팀장)', '이영희 (차장)', '박철수 (과장)', '최지은 (대리)'],
+            '재무팀': ['장호영 (팀장)', '신미경 (차장)', '오성민 (과장)'],
+            '총무팀': ['윤태진 (팀장)', '한소희 (차장)']
+          },
+          '재무전략실': {
+            '재무관리팀': ['임성호 (팀장)', '정다은 (차장)', '강민준 (과장)'],
+            '투자기획팀': ['조현우 (팀장)', '배수진 (차장)']
+          },
+          '사업운영실': {
+            '운영관리팀': ['송지훈 (팀장)', '이수빈 (차장)', '김도현 (과장)'],
+            '고객서비스팀': ['홍길동 (팀장)', '김영수 (차장)', '이미영 (과장)']
+          }
+        }
+      },
+      '코원에너지서비스': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['박민수 (팀장)', '최영희 (차장)'],
+            '재무팀': ['이호영 (팀장)', '김미경 (차장)']
+          },
+          '사업운영실': {
+            '운영관리팀': ['정지훈 (팀장)', '박수빈 (차장)']
+          }
+        }
+      },
+      '충청에너지서비스': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['강민수 (팀장)', '윤영희 (차장)'],
+            '재무팀': ['임호영 (팀장)', '한미경 (차장)']
+          }
+        }
+      },
+      '부산도시가스': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['조민수 (팀장)', '송영희 (차장)'],
+            '재무팀': ['배호영 (팀장)', '홍미경 (차장)']
+          }
+        }
+      },
+      '영남에너지서비스(구미)': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['오민수 (팀장)', '윤영희 (차장)']
+          }
+        }
+      },
+      '영남에너지서비스(포항)': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['신민수 (팀장)', '강영희 (차장)']
+          }
+        }
+      },
+      '전북에너지서비스': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['유민수 (팀장)', '임영희 (차장)']
+          }
+        }
+      },
+      '전남도시가스': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['서민수 (팀장)', '조영희 (차장)']
+          }
+        }
+      },
+      '강원도시가스': {
+        '대표이사': {
+          '경영지원실': {
+            '인사팀': ['문민수 (팀장)', '양영희 (차장)']
+          }
         }
       }
-      return scenario
-    }))
+    }
+    setCompanyOrganizations(defaultOrgs)
+    console.log('✅ 기본 조직 데이터 설정 완료')
+  }
+  
+  // 백엔드 데이터 로드 함수
+  const loadBackendData = async () => {
+    try {
+      console.log('🔄 백엔드 데이터 로딩 중...')
+      
+      // 시나리오 데이터 가져오기
+      const scenarioResponse = await apiClient.get('/scenarios')
+      if (scenarioResponse.success && scenarioResponse.data?.length > 0) {
+        setScenarios(scenarioResponse.data.map(scenario => ({
+          id: scenario.id,
+          title: scenario.title,
+          description: scenario.description,
+          duration: scenario.duration,
+          difficulty: scenario.difficulty,
+          status: scenario.status
+        })))
+        console.log('✅ 백엔드 시나리오 데이터 로드 완료')
+      } else {
+        // 백엔드 데이터가 없으면 기본 시나리오 유지 (11/27 이전 상태)
+        console.log('⚠️ 백엔드 시나리오 데이터 없음, 기본 데이터 유지')
+        setDefaultScenarios()
+      }
+
+      // 훈련 기록 데이터 가져오기
+      const trainingResponse = await apiClient.get('/training')
+      if (trainingResponse.success && trainingResponse.data?.length > 0) {
+        setTrainingHistory(trainingResponse.data)
+        console.log('✅ 백엔드 훈련 기록 데이터 로드 완료')
+      }
+      
+      console.log('✅ 백엔드 데이터 로드 완료')
+    } catch (error) {
+      console.log('⚠️ 백엔드 연결 실패, 기본 데이터 유지:', error.message)
+      // 백엔드 연결 실패 시 기본 시나리오 유지 (11/27 이전 상태)
+      setDefaultScenarios()
+    }
   }
 
+  // Context value
   const contextValue = {
     scenarios,
-    trainingHistory,
-    userProfile,
-    companyOrganizations,
-    roleAssignments,
-    setRoleAssignments,
-    completeTraining,
     setScenarios,
-    resetProfile
+    trainingHistory,
+    setTrainingHistory,
+    currentUser,
+    setCurrentUser,
+    notifications,
+    setNotifications,
+    isAuthenticated,
+    setIsAuthenticated,
+    isLoading,
+    
+    // 인증 관련 함수들
+    login: (userData, token) => {
+      setCurrentUser(userData)
+      setIsAuthenticated(true)
+      localStorage.setItem('authToken', token)
+      localStorage.setItem('currentUser', JSON.stringify(userData))
+      apiClient.setToken(token)
+      loadBackendData() // 로그인 성공 시 백엔드 데이터 로드
+      console.log('✅ 로그인 완료:', userData)
+    },
+    
+    logout: () => {
+      setCurrentUser(null)
+      setIsAuthenticated(false)
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('currentUser')
+      apiClient.setToken(null)
+      setScenarios([]) // 로그아웃 시 데이터 클리어
+      console.log('🔐 로그아웃 완료')
+    },
+    
+    // 유틸리티 함수들
+    addTrainingHistory: (historyItem) => {
+      const newHistory = [...trainingHistory, historyItem]
+      setTrainingHistory(newHistory)
+      localStorage.setItem('trainingHistory', JSON.stringify(newHistory))
+    },
+    
+    addNotification: (notification) => {
+      const newNotification = {
+        id: Date.now(),
+        timestamp: new Date(),
+        ...notification
+      }
+      setNotifications(prev => [newNotification, ...prev])
+    },
+
+    // 훈련 완료 함수
+    completeTraining: (trainingData) => {
+      const completedTraining = {
+        id: `training-${Date.now()}`,
+        completedAt: new Date().toISOString(),
+        ...trainingData
+      }
+      const newHistory = [...trainingHistory, completedTraining]
+      setTrainingHistory(newHistory)
+      localStorage.setItem('trainingHistory', JSON.stringify(newHistory))
+      return completedTraining
+    },
+
+    // 사용자 프로필
+    userProfile: currentUser,
+    
+    // 조직 데이터
+    companyOrganizations,
+    setCompanyOrganizations,
+    
+    // 역할 배정
+    roleAssignments,
+    setRoleAssignments
   }
 
-  // 프로필이 설정되지 않은 경우 로그인 화면 표시
-  if (!isProfileSetup) {
-    // 백엔드 API 사용 모드인지 확인
-    if (useBackendAPI) {
-      return <BackendLogin onLoginSuccess={handleBackendLoginSuccess} />
-    } else {
-      return <UserProfile onProfileComplete={handleProfileComplete} companyOrganizations={companyOrganizations} />
+  // 로딩 화면
+  if (isLoading) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-300">시스템을 초기화하는 중...</p>
+          </div>
+        </div>
+      </ThemeProvider>
+    )
+  }
+
+  // 보호된 라우트 컴포넌트
+  const ProtectedRoute = ({ children }) => {
+    if (!isAuthenticated) {
+      return <Navigate to="/login" replace />
     }
+    return children
+  }
+
+  // 공개 라우트 컴포넌트 (로그인된 사용자는 대시보드로)
+  const PublicRoute = ({ children }) => {
+    if (isAuthenticated) {
+      return <Navigate to="/" replace />
+    }
+    return children
+  }
+
+  // BackendLogin 래퍼 컴포넌트 (App.jsx의 login 함수 사용)
+  const BackendLoginWrapper = () => {
+    const handleLoginSuccess = (userData) => {
+      // BackendLogin에서 받은 사용자 데이터를 App.jsx의 login 함수로 전달
+      const token = localStorage.getItem('authToken') || 'mock-token-' + Date.now()
+      contextValue.login(userData, token)
+    }
+    
+    return <BackendLogin onLoginSuccess={handleLoginSuccess} />
   }
 
   return (
-    <AppContext.Provider value={contextValue}>
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true
-        }}
-      >
-        <div className="min-h-screen bg-gray-50">
-          {/* 개발자용 백엔드 연결 토글 */}
-          <div className="fixed top-4 right-4 z-50 space-x-2">
-            <button
-              onClick={() => {
-                console.log('백엔드 연결 토글 클릭:', !useBackendAPI)
-                setUseBackendAPI(!useBackendAPI)
-                // 백엔드 모드로 전환할 때 프로필 설정을 초기화
-                if (!useBackendAPI) {
-                  setIsProfileSetup(false)
-                }
-              }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${useBackendAPI
-                ? 'bg-green-600 text-white hover:bg-green-700'
-                : 'bg-gray-600 text-white hover:bg-gray-700'
-                }`}
-            >
-              {useBackendAPI ? '🔗 백엔드 연결됨' : '🔌 백엔드 연결'}
-            </button>
-
-            {isProfileSetup && (
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-              >
-                🚪 로그아웃
-              </button>
-            )}
+    <ThemeProvider>
+      <AppContext.Provider value={contextValue}>
+        <Router>
+          <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
+            {/* 인증된 사용자에게만 Navbar 표시 */}
+            {isAuthenticated && <Navbar />}
+            
+            <main className={isAuthenticated ? "pt-16" : ""}>
+              <Routes>
+                {/* 로그인 페이지 (공개) - LoginPage 사용 (11/26~27 버전 기준) */}
+                <Route 
+                  path="/login" 
+                  element={
+                    <PublicRoute>
+                      <LoginPage />
+                    </PublicRoute>
+                  } 
+                />
+                
+                {/* 회원가입 페이지 (공개) */}
+                <Route 
+                  path="/register" 
+                  element={
+                    <PublicRoute>
+                      <Register />
+                    </PublicRoute>
+                  } 
+                />
+                
+                {/* 보호된 라우트들 */}
+                <Route 
+                  path="/" 
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/training/scenario/:scenarioId" 
+                  element={
+                    <ProtectedRoute>
+                      <ScenarioTraining />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/training/advanced/:scenarioId" 
+                  element={
+                    <ProtectedRoute>
+                      <AdvancedTrainingEngine />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/organization" 
+                  element={
+                    <ProtectedRoute>
+                      <OrganizationManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/team" 
+                  element={
+                    <ProtectedRoute>
+                      <TeamManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/team/training/:scenarioId" 
+                  element={
+                    <ProtectedRoute>
+                      <TeamTrainingEngine />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/role-assignment" 
+                  element={
+                    <ProtectedRoute>
+                      <RoleAssignment />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/admin/training" 
+                  element={
+                    <ProtectedRoute>
+                      <TrainingManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/admin/login" 
+                  element={
+                    <ProtectedRoute>
+                      <BackendLogin />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/profile" 
+                  element={
+                    <ProtectedRoute>
+                      <UserProfile />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/evaluation/:trainingId" 
+                  element={
+                    <ProtectedRoute>
+                      <EvaluationReport />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/map" 
+                  element={
+                    <ProtectedRoute>
+                      <EmergencyMap />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* 404 및 기타 라우트 */}
+                <Route 
+                  path="*" 
+                  element={
+                    isAuthenticated ? (
+                      <div className="flex items-center justify-center min-h-[60vh]">
+                        <div className="text-center">
+                          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
+                          <p className="text-xl text-gray-600 dark:text-gray-300">페이지를 찾을 수 없습니다.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <Navigate to="/login" replace />
+                    )
+                  } 
+                />
+              </Routes>
+            </main>
           </div>
-
-          <Navbar />
-          <main className="container mx-auto px-4 py-8">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/training/:scenarioId" element={<AdvancedTrainingEngine />} />
-              <Route path="/roles" element={<RoleAssignment />} />
-              <Route path="/training-management" element={<TrainingManagement />} />
-              <Route path="/team-management" element={<TeamManagement />} />
-              <Route path="/team-training/:teamId" element={<TeamTrainingEngine />} />
-              <Route path="/evaluation" element={<EvaluationReport />} />
-            </Routes>
-          </main>
-        </div>
-      </Router>
-    </AppContext.Provider>
+        </Router>
+      </AppContext.Provider>
+    </ThemeProvider>
   )
 }
 

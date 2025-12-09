@@ -1466,7 +1466,17 @@ const AdvancedTrainingEngine = () => {
       console.log('💾 피드백 데이터 저장 완료')
     } catch (error) {
       console.error('💥 AI 피드백 생성 중 오류 발생:', error)
-      console.error('🔍 오류 스택:', error.stack)
+      console.error('🔍 오류 메시지:', error.message)
+      
+      // OpenAI API 할당량 초과 등의 경우 사용자에게 알림
+      if (error.message && (
+        error.message.includes('429') || 
+        error.message.includes('insufficient_quota') ||
+        error.message.includes('quota')
+      )) {
+        console.warn('⚠️ OpenAI API 할당량 초과 - 기본 피드백 사용')
+        showWarning('OpenAI API 할당량 초과', 'OpenAI API 할당량이 초과되어 기본 피드백을 제공합니다.')
+      }
       
       // 기본 피드백으로 대체
       console.log('🔄 기본 피드백으로 전환 중...')

@@ -1,9 +1,11 @@
 // 백엔드 API를 사용하는 새로운 로그인 컴포넌트
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Building, Users, User, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
 import { loginAPI, getProfileAPI, checkAuthStatus } from '../services/authService.js'
 
 const BackendLogin = ({ onLoginSuccess }) => {
+  const navigate = useNavigate()
   const [loginData, setLoginData] = useState({
     username: '',
     password: ''
@@ -40,7 +42,7 @@ const BackendLogin = ({ onLoginSuccess }) => {
 
     try {
       // 백엔드 API가 활성화되어 있는지 확인
-      const hasBackendServer = await fetch('http://localhost:3001/health', { 
+      const hasBackendServer = await fetch('http://localhost:3001/health', {
         method: 'GET',
         signal: AbortSignal.timeout(1000) // 1초 타임아웃
       }).then(() => true).catch(() => false)
@@ -50,13 +52,25 @@ const BackendLogin = ({ onLoginSuccess }) => {
         const loginResult = await loginAPI(loginData.username, loginData.password)
         const userFromAPI = loginResult.user || {
           id: 1,
+          username: loginData.username,
           name: loginData.username,
-          company: '테스트 회사',
-          department: '개발팀',
-          position: '개발자'
+          company: loginResult.user?.company || '테스트 회사',
+          department: loginResult.user?.department || '개발팀',
+          position: loginResult.user?.position || '개발자',
+          team: loginResult.user?.team || ''
         }
+
+        // 토큰 저장
+        if (loginResult.token) {
+          localStorage.setItem('authToken', loginResult.token)
+        }
+
         onLoginSuccess(userFromAPI)
         console.log('✅ 백엔드 로그인 성공:', userFromAPI)
+        // 로그인 성공 후 대시보드로 이동
+        setTimeout(() => {
+          navigate('/', { replace: true })
+        }, 500)
       } else {
         throw new Error('백엔드 서버 연결 없음')
       }
@@ -64,14 +78,23 @@ const BackendLogin = ({ onLoginSuccess }) => {
       // 백엔드가 없으면 모의 로그인으로 진행
       const mockUser = {
         id: 1,
+        username: loginData.username,
         name: loginData.username,
         company: '테스트 회사',
         department: '개발팀',
-        position: '개발자'
+        position: '개발자',
+        team: ''
       }
-      
+
+      const mockToken = 'mock-token-' + Date.now()
+      localStorage.setItem('authToken', mockToken)
+
       onLoginSuccess(mockUser)
       console.log('✅ 모의 로그인 성공:', mockUser)
+      // 모의 로그인 성공 후 대시보드로 이동
+      setTimeout(() => {
+        navigate('/', { replace: true })
+      }, 500)
     } finally {
       setIsLoading(false)
     }
@@ -104,9 +127,9 @@ const BackendLogin = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center relative">
       {/* 좌측 상단 로고 */}
       <div className="absolute top-6 left-6">
-        <img 
-          src="/sk-innovation-logo.png" 
-          alt="SK 이노베이션 E&S" 
+        <img
+          src="/sk-innovation-logo.png"
+          alt="SK 이노베이션 E&S"
           className="h-12 object-contain"
           onError={(e) => {
             // 로고 파일이 없을 경우 기본 아이콘 표시
@@ -171,7 +194,7 @@ const BackendLogin = ({ onLoginSuccess }) => {
           {/* 에러 메시지 */}
           {error && (
             <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg">
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
           )}

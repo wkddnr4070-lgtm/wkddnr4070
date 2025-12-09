@@ -4,14 +4,17 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class', // 다크모드 활성화 (class 기반)
   theme: {
     extend: {
       colors: {
         primary: {
           50: '#eff6ff',
+          400: '#60a5fa', // 다크모드용 밝은 색
           500: '#3b82f6',
           600: '#2563eb',
           700: '#1d4ed8',
+          900: '#1e3a8a', // 다크모드용 어두운 색
         },
         danger: {
           50: '#fef2f2',

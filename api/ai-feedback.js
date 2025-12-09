@@ -56,6 +56,27 @@ export default async function handler(req, res) {
     console.log(`🤖 점수(${trainingData.score}점)가 ${maxScoreForAI}점 이하이므로 AI 피드백 생성`)
     console.log('🚀 OpenAI API 호출 시작...')
 
+    // OpenAI API 호출 (재시도 로직 포함)
+    const formattedFeedback = await retryOpenAICall(openaiApiKey, trainingData, 0)
+    return res.status(200).json(formattedFeedback)
+
+  } catch (error) {
+    console.error('💥 AI 피드백 생성 실패:', error)
+    console.log('🔄 기본 피드백으로 전환')
+    
+    // AI 실패 시 기본 피드백 반환
+    return res.status(200).json(generateFallbackFeedback(req.body.trainingData || {}))
+  }
+}
+
+// OpenAI API 호출 재시도 함수
+async function retryOpenAICall(openaiApiKey, trainingData, retryCount = 0) {
+  const MAX_RETRIES = 3
+  const INITIAL_RETRY_DELAY = 2000
+  
+  try {
+    console.log(`🔄 OpenAI API 호출 (시도 ${retryCount + 1}/${MAX_RETRIES + 1})`)
+    
     // OpenAI API 호출
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -87,7 +108,44 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ API 오류 응답:', errorText)
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch (e) {
+        errorData = { error: { message: errorText } }
+      }
+      
+      console.error('❌ API 오류 응답:', errorData)
+      
+      // 429 (할당량 초과) - 재시도 로직
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After')
+        const retryDelay = retryAfter ? parseInt(retryAfter) * 1000 : INITIAL_RETRY_DELAY * Math.pow(2, retryCount)
+        
+        if (retryCount < MAX_RETRIES) {
+          console.warn(`⚠️ OpenAI API 할당량 초과 (429) - ${retryDelay}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`)
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+          return retryOpenAICall(openaiApiKey, trainingData, retryCount + 1)
+        } else {
+          console.error('❌ 최대 재시도 횟수 초과 - 기본 피드백으로 전환')
+          throw new Error('최대 재시도 횟수 초과')
+        }
+      }
+      
+      // 401, 402는 재시도 불가
+      if (response.status === 401 || response.status === 402) {
+        console.error(`❌ OpenAI API 인증/결제 오류 (${response.status})`)
+        throw new Error(`AI API 인증 실패: ${response.status} ${response.statusText}`)
+      }
+      
+      // 서버 오류 (500, 502, 503) - 재시도 가능
+      if (response.status >= 500 && retryCount < MAX_RETRIES) {
+        const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount)
+        console.warn(`⚠️ 서버 오류 (${response.status}) - ${retryDelay}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+        return retryOpenAICall(openaiApiKey, trainingData, retryCount + 1)
+      }
+      
       throw new Error(`AI API 요청 실패: ${response.status} ${response.statusText} - ${errorText}`)
     }
 
@@ -103,14 +161,23 @@ export default async function handler(req, res) {
     const formattedFeedback = formatAIFeedback(aiResponse, trainingData)
     console.log('📋 최종 피드백 포맷팅 완료')
 
-    return res.status(200).json(formattedFeedback)
-
-  } catch (error) {
-    console.error('💥 AI 피드백 생성 실패:', error)
-    console.log('🔄 기본 피드백으로 전환')
+    return formattedFeedback
     
-    // AI 실패 시 기본 피드백 반환
-    return res.status(200).json(generateFallbackFeedback(req.body.trainingData || {}))
+  } catch (error) {
+    console.error(`💥 OpenAI API 호출 실패 (시도 ${retryCount + 1}):`, error.message)
+    
+    // 네트워크 오류나 타임아웃 - 재시도 가능
+    if ((error.message.includes('Failed to fetch') || 
+         error.message.includes('network') ||
+         error.message.includes('timeout')) && retryCount < MAX_RETRIES) {
+      const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount)
+      console.warn(`⚠️ 네트워크 오류 - ${retryDelay}ms 후 재시도 (${retryCount + 1}/${MAX_RETRIES})`)
+      await new Promise(resolve => setTimeout(resolve, retryDelay))
+      return retryOpenAICall(openaiApiKey, trainingData, retryCount + 1)
+    }
+    
+    // 최종 실패 시 에러 throw (상위에서 기본 피드백 처리)
+    throw error
   }
 }
 

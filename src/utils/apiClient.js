@@ -49,9 +49,14 @@ class ApiClient {
   // HTTP 요청 메서드
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`
+    
+    // AbortController를 사용한 타임아웃 구현
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+    
     const config = {
       headers: this.getHeaders(),
-      timeout: this.timeout,
+      signal: controller.signal,
       ...options
     }
 
@@ -59,20 +64,50 @@ class ApiClient {
       console.log(`🌐 API 요청: ${options.method || 'GET'} ${url}`)
       
       const response = await fetch(url, config)
-      const data = await response.json()
+      clearTimeout(timeoutId)
+      
+      // 응답 본문 파싱 시도
+      let data
+      try {
+        const text = await response.text()
+        if (text) {
+          data = JSON.parse(text)
+        } else {
+          data = {}
+        }
+      } catch (parseError) {
+        console.warn(`⚠️ JSON 파싱 실패: ${url}`, parseError)
+        data = { message: `서버 오류 (${response.status})` }
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}`)
+        const errorMessage = data.message || data.error || `HTTP ${response.status}`
+        const error = new Error(errorMessage)
+        error.status = response.status
+        error.data = data
+        throw error
       }
 
       console.log(`✅ API 응답: ${url}`, data)
       return data
     } catch (error) {
+      clearTimeout(timeoutId)
+      
+      // AbortError는 타임아웃을 의미
+      if (error.name === 'AbortError') {
+        console.log(`⏱️ API 요청 타임아웃: ${url} (${this.timeout}ms)`)
+        const timeoutError = new Error(`요청 시간 초과 (${this.timeout}ms)`)
+        timeoutError.name = 'TimeoutError'
+        throw timeoutError
+      }
+      
       // 백엔드 서버가 없는 환경에서는 조용히 처리
       if (error.message.includes('CONNECTION_REFUSED') || error.message.includes('Failed to fetch')) {
         console.log(`🔌 백엔드 서버 연결 실패: ${url}`)
       } else {
-        console.error(`❌ API 오류: ${url}`, error)
+        // 상태 코드가 있는 경우 포함하여 로그
+        const statusInfo = error.status ? ` (${error.status})` : ''
+        console.error(`❌ API 오류${statusInfo}: ${url}`, error.message)
       }
       throw error
     }

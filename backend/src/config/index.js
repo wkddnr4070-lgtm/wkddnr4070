@@ -19,16 +19,16 @@ const config = {
   env: process.env.NODE_ENV || 'development',
   isDevelopment: process.env.NODE_ENV !== 'production',
 
-  // 데이터베이스 설정 (PostgreSQL 기본, SQLite 지원)
+  // 데이터베이스 설정 (SQLite 기본, PostgreSQL 지원)
   database: {
-    client: process.env.DB_CLIENT || 'postgresql',
+    client: process.env.DB_CLIENT || 'sqlite',
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT) || 5432,
     name: process.env.DB_NAME || 'gas_training',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'password',
     // SQLite 설정 (client가 'sqlite'일 때 사용)
-    filename: process.env.DB_FILENAME || 'gas_training.db'
+    filename: process.env.DB_FILENAME || '../data/gas_training.db'
   },
 
   // 인증 설정
