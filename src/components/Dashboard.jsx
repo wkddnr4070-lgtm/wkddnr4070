@@ -37,43 +37,40 @@ const Dashboard = () => {
       console.log('✅ 기본 시나리오 데이터 설정 완료:', defaultScenarios)
     }
     
-    // 백엔드 데이터 로드 시도 (있으면 덮어쓰기)
+    // 백엔드 데이터 로드 시도 (있으면 덮어쓰기) - 11/27 이전 상태에서는 비활성화
     const loadBackendData = async () => {
       try {
         setIsLoading(true)
-        console.log('🔄 백엔드에서 데이터 로딩 중...')
+        console.log('🔄 백엔드 연결 비활성화 - 로컬 데이터 사용')
         
-        // 시나리오 데이터 가져오기
-        const scenarioResponse = await apiClient.get('/scenarios')
-        console.log('📊 시나리오 데이터:', scenarioResponse)
+        // 백엔드 연결 비활성화 - 11/27 이전 상태로 복구
+        // const scenarioResponse = await apiClient.get('/scenarios')
+        // console.log('📊 시나리오 데이터:', scenarioResponse)
         
-        // 훈련 기록 데이터 가져오기
-        const trainingResponse = await apiClient.get('/training')
-        console.log('📈 훈련 데이터:', trainingResponse)
+        // 백엔드 API 호출 비활성화 - 11/27 이전 상태로 복구
+        // const trainingResponse = await apiClient.get('/training')
+        // console.log('📈 훈련 데이터:', trainingResponse)
         
         setBackendData({
-          scenarios: scenarioResponse.data || [],
-          training: trainingResponse.data || []
+          scenarios: [],
+          training: []
         })
         
-        // Context에도 업데이트 (백엔드 데이터가 있으면 사용)
-        if (scenarioResponse.data?.length > 0) {
-          setScenarios(scenarioResponse.data)
-        }
-        if (trainingResponse.data?.length > 0) {
-          setTrainingHistory(trainingResponse.data)
-        }
+        // 로컬 데이터만 사용 (11/27 이전 상태)
+        console.log('✅ 로컬 데이터 사용 - 백엔드 연결 불필요')
         
         console.log('✅ 백엔드 데이터 로드 완료')
       } catch (error) {
-        console.log('⚠️ 백엔드 연결 실패, 로컬 데이터 사용:', error.message)
-        // 백엔드 연결 실패 시 기본 데이터 유지 (이미 설정됨)
+        console.log('⚠️ 백엔드 연결 비활성화 상태:', error.message)
+        setBackendData({ scenarios: [], training: [] })
       } finally {
         setIsLoading(false)
       }
     }
     
-    loadBackendData()
+    // 11/27 이전 상태로 복구 - 백엔드 호출 비활성화
+    // loadBackendData()
+    setIsLoading(false) // 로딩 즉시 해제
   }, [setScenarios, setTrainingHistory])
 
   // 최근 활동 (훈련 이력에서 생성)

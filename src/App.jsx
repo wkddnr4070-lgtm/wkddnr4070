@@ -119,9 +119,10 @@ function App() {
     // 기본 시나리오 먼저 설정 (11/27 이전 상태)
     setDefaultScenarios()
     
-    if (isAuthenticated && currentUser) {
-      loadBackendData()
-    }
+    // 11/27 이전 상태로 복구 - 백엔드 호출 비활성화
+    // if (isAuthenticated && currentUser) {
+    //   loadBackendData()
+    // }
     // 비인증 상태에서는 기본 데이터 유지 (이미 설정됨)
 
     // 훈련 히스토리 로컬 스토리지에서 로드
@@ -140,8 +141,8 @@ function App() {
     // 기본 조직 데이터 즉시 설정 (11/27 이전 구조)
     setDefaultOrganizationData()
     
-    // 백엔드에서 조직 데이터 로드 시도 (있으면 덮어쓰기)
-    loadOrganizationData()
+    // 11/27 이전 상태로 복구 - 백엔드 조직 데이터 호출 비활성화
+    // loadOrganizationData()
   }, [])
   
   const loadOrganizationData = async () => {
