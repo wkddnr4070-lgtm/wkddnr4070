@@ -6,11 +6,11 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { detailedScenarios } from '../data/trainingScenarios'
 import apiClient from '../utils/apiClient'
-import SystemTest from './SystemTest'
+// import SystemTest from './SystemTest' // 11/27 이전 상태로 복구를 위해 제거
 
 const Dashboard = () => {
   const { scenarios, setScenarios, trainingHistory, setTrainingHistory } = useAppContext()
-  const [showSystemTest, setShowSystemTest] = useState(false)
+  // const [showSystemTest, setShowSystemTest] = useState(false) // 11/27 이전 상태로 복구를 위해 제거
   const [backendData, setBackendData] = useState({ scenarios: [], training: [] })
   const [isLoading, setIsLoading] = useState(true)
   
@@ -118,6 +118,7 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">도시가스 비상대응 모의훈련 대시보드</h1>
             <p className="text-gray-600">시나리오 기반 도시가스 비상대응 훈련을 시작하세요</p>
           </div>
+          {/* 시스템 점검 버튼 - 11/27 이전 상태로 복구를 위해 제거
           <button
             onClick={() => setShowSystemTest(!showSystemTest)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
@@ -129,6 +130,7 @@ const Dashboard = () => {
             <Settings className="w-4 h-4" />
             {showSystemTest ? '시스템 점검 숨기기' : '시스템 점검'}
           </button>
+          */}
         </div>
       </div>
 
@@ -360,12 +362,13 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 시스템 점검 */}
+      {/* 시스템 점검 - 11/27 이전 상태로 복구를 위해 제거
       {showSystemTest && (
         <div className="mt-8">
           <SystemTest />
         </div>
       )}
+      */}
     </div>
   )
 }

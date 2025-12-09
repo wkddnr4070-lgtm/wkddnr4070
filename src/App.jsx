@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { ThemeProvider } from './contexts/ThemeContext'
+// import { ThemeProvider } from './contexts/ThemeContext' // 11/27 이전 상태로 복구를 위해 제거
 import LoginPage from './components/LoginPage'
-import Register from './components/Register'
+// import Register from './components/Register' // 11/27 이전 상태로 복구를 위해 제거
 import BackendLogin from './components/BackendLogin'
 import Navbar from './components/Navbar'
 import Dashboard from './components/Dashboard'
-import OrganizationManagement from './components/OrganizationManagement'
+// import OrganizationManagement from './components/OrganizationManagement' // 11/27 이전 상태로 복구를 위해 제거
 import ScenarioTraining from './components/ScenarioTraining'
 import AdvancedTrainingEngine from './components/AdvancedTrainingEngine'
 import TeamManagement from './components/TeamManagement'
@@ -363,14 +363,12 @@ function App() {
   // 로딩 화면
   if (isLoading) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-300">시스템을 초기화하는 중...</p>
-          </div>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">시스템을 초기화하는 중...</p>
         </div>
-      </ThemeProvider>
+      </div>
     )
   }
 
@@ -402,10 +400,9 @@ function App() {
   }
 
   return (
-    <ThemeProvider>
-      <AppContext.Provider value={contextValue}>
-        <Router>
-          <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
+    <AppContext.Provider value={contextValue}>
+      <Router>
+        <div className="min-h-screen bg-gray-100 transition-colors">
             {/* 인증된 사용자에게만 Navbar 표시 */}
             {isAuthenticated && <Navbar />}
             
@@ -422,14 +419,16 @@ function App() {
                 />
                 
                 {/* 회원가입 페이지 (공개) */}
+                {/* Register 라우트 - 11/27 이전 상태로 복구를 위해 제거
                 <Route 
                   path="/register" 
                   element={
                     <PublicRoute>
                       <Register />
                     </PublicRoute>
-                  } 
+                  }
                 />
+                */}
                 
                 {/* 보호된 라우트들 */}
                 <Route 
@@ -459,6 +458,7 @@ function App() {
                   } 
                 />
                 
+                {/* OrganizationManagement 라우트 - 11/27 이전 상태로 복구를 위해 제거
                 <Route 
                   path="/organization" 
                   element={
@@ -467,6 +467,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
+                */}
                 
                 <Route 
                   path="/team" 
@@ -561,7 +562,6 @@ function App() {
           </div>
         </Router>
       </AppContext.Provider>
-    </ThemeProvider>
   )
 }
 

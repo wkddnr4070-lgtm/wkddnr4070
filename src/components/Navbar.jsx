@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, Users, ClipboardCheck, BarChart3, User, LogOut, ChevronDown, FileText, UserCheck } from 'lucide-react'
 import { useAppContext } from '../App'
-import DarkModeToggle from './DarkModeToggle'
 
 const Navbar = () => {
   const location = useLocation()
@@ -158,10 +157,11 @@ const Navbar = () => {
               )
             })}
 
-            {/* 다크모드 토글 */}
+            {/* 다크모드 토글 - 11/27 이전 상태로 복구를 위해 제거
             <div className="flex items-center">
               <DarkModeToggle />
             </div>
+            */}
 
             {/* 사용자 메뉴 */}
             <div className="relative">
