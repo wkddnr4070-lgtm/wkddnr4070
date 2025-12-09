@@ -1,19 +1,36 @@
 // API 통신을 위한 설정 파일
-const API_CONFIG = {
-  // 개발 환경
-  development: {
-    baseURL: 'http://localhost:3001/api/v1',
-    timeout: 10000
-  },
-  // 프로덕션 환경
-  production: {
-    baseURL: 'https://your-domain.com/api/v1',
-    timeout: 10000
+const getBaseURL = () => {
+  // 환경 변수 우선 사용
+  if (import.meta.env.VITE_API_URL) {
+    console.log('🔧 VITE_API_URL 환경 변수 사용:', import.meta.env.VITE_API_URL)
+    return import.meta.env.VITE_API_URL
   }
+  
+  // 환경별 기본 설정
+  const API_CONFIG = {
+    // 개발 환경
+    development: {
+      baseURL: 'http://localhost:3001/api',
+      timeout: 10000
+    },
+    // 프로덕션 환경
+    production: {
+      baseURL: '/api', // 같은 도메인의 /api 사용
+      timeout: 10000
+    }
+  }
+  
+  const config = API_CONFIG[import.meta.env.MODE] || API_CONFIG.development
+  console.log('🔧 API 설정:', { mode: import.meta.env.MODE, baseURL: config.baseURL })
+  return config.baseURL
 }
 
-// 현재 환경에 따른 설정 선택
-const config = API_CONFIG[import.meta.env.MODE] || API_CONFIG.development
+const config = {
+  baseURL: getBaseURL(),
+  timeout: 10000
+}
+
+console.log('🔧 최종 API 설정:', config)
 
 // API 클라이언트 클래스
 class ApiClient {
@@ -35,15 +52,22 @@ class ApiClient {
 
   // 기본 요청 헤더
   getHeaders() {
-    const headers = {
-      'Content-Type': 'application/json'
+    try {
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`
+      }
+      
+      return headers
+    } catch (error) {
+      console.error('❌ getHeaders 오류:', error)
+      return {
+        'Content-Type': 'application/json'
+      }
     }
-    
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`
-    }
-    
-    return headers
   }
 
   // HTTP 요청 메서드
@@ -54,8 +78,11 @@ class ApiClient {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.timeout)
     
+    // 안전한 헤더 처리
+    const headers = this.getHeaders() || {}
+    
     const config = {
-      headers: this.getHeaders(),
+      headers,
       signal: controller.signal,
       ...options
     }
