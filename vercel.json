@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/ai-feedback.js": {
-      "runtime": "@vercel/node",
+      "runtime": "nodejs18.x",
       "maxDuration": 30
     }
   },
