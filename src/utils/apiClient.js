@@ -1,19 +1,32 @@
 // API 통신을 위한 설정 파일
-const API_CONFIG = {
-  // 개발 환경
-  development: {
-    baseURL: 'http://localhost:3001/api/v1',
-    timeout: 10000
-  },
-  // 프로덕션 환경
-  production: {
-    baseURL: 'https://your-domain.com/api/v1',
-    timeout: 10000
+const getBaseURL = () => {
+  // 환경 변수 우선 사용
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
   }
+  
+  // 환경별 기본 설정
+  const API_CONFIG = {
+    // 개발 환경
+    development: {
+      baseURL: 'http://localhost:3001/api',
+      timeout: 10000
+    },
+    // 프로덕션 환경
+    production: {
+      baseURL: '/api', // 같은 도메인의 /api 사용
+      timeout: 10000
+    }
+  }
+  
+  const config = API_CONFIG[import.meta.env.MODE] || API_CONFIG.development
+  return config.baseURL
 }
 
-// 현재 환경에 따른 설정 선택
-const config = API_CONFIG[import.meta.env.MODE] || API_CONFIG.development
+const config = {
+  baseURL: getBaseURL(),
+  timeout: 10000
+}
 
 // API 클라이언트 클래스
 class ApiClient {
