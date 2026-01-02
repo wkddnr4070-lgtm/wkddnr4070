@@ -489,10 +489,28 @@ function App() {
                 />
                 
                 <Route 
+                  path="/roles" 
+                  element={
+                    <ProtectedRoute>
+                      <RoleAssignment />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
                   path="/role-assignment" 
                   element={
                     <ProtectedRoute>
                       <RoleAssignment />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/training-management" 
+                  element={
+                    <ProtectedRoute>
+                      <TrainingManagement />
                     </ProtectedRoute>
                   } 
                 />
@@ -520,6 +538,15 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <UserProfile />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/evaluation" 
+                  element={
+                    <ProtectedRoute>
+                      <EvaluationReport />
                     </ProtectedRoute>
                   } 
                 />
