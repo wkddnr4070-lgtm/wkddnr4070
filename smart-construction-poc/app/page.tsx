@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { FilterBar } from '@/components/dashboard/FilterBar';
 import { KpiCard } from '@/components/dashboard/KpiCard';
@@ -46,6 +47,18 @@ export default function DashboardPage() {
         </section>
 
         <SummaryPanels projects={filteredProjects} />
+        <section className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold text-blue-900">개발현황 보드</h2>
+              <p className="text-sm text-blue-700">단계별 진행률과 다음 작업을 사이트 형태로 확인할 수 있습니다.</p>
+            </div>
+            <Link href="/status" className="rounded-md bg-brand-600 px-3 py-2 text-sm text-white hover:bg-brand-700">
+              개발현황 보기
+            </Link>
+          </div>
+        </section>
+
         <ProjectTable projects={filteredProjects} />
       </div>
     </AppShell>

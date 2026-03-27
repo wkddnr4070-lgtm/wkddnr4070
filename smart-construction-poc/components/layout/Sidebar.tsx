@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 const menus = [
   { label: '대시보드', href: '/' },
+  { label: '개발현황', href: '/status' },
   { label: '공사계획', href: '/plans' },
   { label: '제출서류', href: '/submissions' },
   { label: '승인관리', href: '#' },
