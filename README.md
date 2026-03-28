@@ -1,5 +1,61 @@
 # SHE 디지털 훈련 플랫폼 프로토타입
 
+## 🔎 Smart 공사관리 PoC 접속 방법 (중요)
+
+### 실행에 필요한 도구
+- Node.js 20+ (LTS 권장)
+- npm 10+
+- Git
+
+자동 설치/검증(권장):
+```bash
+npm run poc:bootstrap
+```
+
+현재 PR 화면(깃허브 웹페이지) 자체는 **코드 리뷰 화면**이며, 실제 서비스 화면이 아닙니다.
+
+클릭으로 실행하려면 저장소 루트의 `START_SMART_POC.bat`(Windows) 또는 `START_SMART_POC.sh`(macOS/Linux)를 실행하세요.
+
+명령어로 실행하려면:
+
+```bash
+npm run poc:start
+```
+
+초기 환경 준비가 안 되어 있으면 먼저:
+
+```bash
+npm run poc:bootstrap
+```
+
+(수동 실행 시)
+```bash
+npm run poc:install
+npm run poc:dev
+```
+
+실행 후 접속 주소:
+- 기본: `http://localhost:3000`
+- 대시보드: `http://localhost:3000/`
+- 개발현황: `http://localhost:3000/status`
+- 공사계획: `http://localhost:3000/plans`
+- 제출포털: `http://localhost:3000/submissions`
+- 접속안내: `http://localhost:3000/access`
+
+> 참고: 기존 저장소의 Vite 앱(`npm run dev`)과 Smart 공사관리 PoC는 별도입니다.
+> 자세한 클릭 실행 절차: `사이트_실행_가이드.md`
+> 파일 경로를 한눈에 보려면: `파일_경로_정리.md`
+> GitHub에서 파일 클릭 경로: `GITHUB_파일_클릭_경로.md`
+> GitHub Desktop 설정 가이드: `GITHUB_DESKTOP_설정_가이드.md`
+> 레포 이관 체크리스트: `레포_이관_정보_체크리스트.md`
+
+### 로컬 파일이 없는 경우 (GitHub에서 실행)
+
+- GitHub PR/코드 화면 자체는 실행 화면이 아닙니다.
+- 로컬 파일이 없으면 **GitHub Codespaces** 또는 **Vercel 배포**로 실행해야 합니다.
+- 상세 절차: `GITHUB_실행_가이드.md`
+
+
 실제 지역 기반 사고 시나리오를 바탕으로 각 개인의 역할(R&R)에 따른 조치 수행 능력을 점검, 평가, 리포팅할 수 있는 디지털 훈련 플랫폼입니다.
 
 ## 🚀 주요 기능
