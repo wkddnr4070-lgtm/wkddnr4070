@@ -113,3 +113,6 @@ temp/
 
 # Vercel
 .vercel
+
+# Local export bundles
+export/

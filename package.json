@@ -7,7 +7,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "poc:install": "npm --prefix smart-construction-poc install",
+    "poc:dev": "npm --prefix smart-construction-poc run dev",
+    "poc:build": "npm --prefix smart-construction-poc run build",
+    "poc:start": "node scripts/run-smart-poc.js",
+    "poc:bootstrap": "bash scripts/bootstrap-smart-poc.sh"
   },
   "keywords": [],
   "author": "",
