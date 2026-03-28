@@ -47,6 +47,7 @@ npm run poc:dev
 > 파일 경로를 한눈에 보려면: `파일_경로_정리.md`
 > GitHub에서 파일 클릭 경로: `GITHUB_파일_클릭_경로.md`
 > GitHub Desktop 설정 가이드: `GITHUB_DESKTOP_설정_가이드.md`
+> 레포 이관 체크리스트: `레포_이관_정보_체크리스트.md`
 
 ### 로컬 파일이 없는 경우 (GitHub에서 실행)
 
